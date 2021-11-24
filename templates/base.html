@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang='en'>
+    <head>
+        <meta charset='utf-8'>
+        <!-- for mobile-friendly pages -->
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name=author content="Ivy Ho">
+
+        <title>{{ page_title }}</title>
+        <link rel='stylesheet' href="{{url_for('static', filename = 'style.css')}}">
+        {% block head_stuff %} {% endblock %}
+    </head>
+
+    <body>
+        <header>       
+            {% block nav %}
+            <nav>
+                <ul>
+                <li><a href="{{url_for('index')}}">Home</a></li>
+                <!-- <li><a href="{{url_for('search')}}">Search for a Recipe</a></li>
+                <li><a href="{{url_for('insert')}}">Insert a Recipe</a></li> -->
+                </ul>
+
+                {% if user %}
+
+                <form method="post" action="{{url_for('logout')}}">
+                        <button>logout {{user}}</button>
+                </form>
+    
+                {% else %}
+                <form method="post" action="{{url_for('login')}}">
+                        <p><label>User: <input type=text name="loginname"></label>
+                        <p><label>Pass: <input type=password name="loginpass"></label>
+                        <p><input type="submit" value="login">
+                </form>
+
+                <form action="{{url_for('join')}}">
+                    <p><input type="submit" value="join">
+                </form>
+                
+                {% endif %}
+    
+                {% endblock %}
+            </nav>
+        </header>    
+
+    <main>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div id="messages">
+            {% for msg in messages %}
+            <p>{{msg}}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% block main_content %}
+        <h1>Welcome!</h1>
+        {% endblock %}
+
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        {% block end_scripts %}
+        {% endblock %}
+    </main>
+  </body>
+</html>

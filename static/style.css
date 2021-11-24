@@ -1,0 +1,196 @@
+/* the --color-header and others are CSS variables, which we access later. 
+*/
+
+HTML {
+    --color-header: #7fa99b;  /* color for H1-H6 and others. was deepskyblue but poor contrast. */
+    --color-hilite: #d55b3e;  /* was red, but this avoids WAVE contrast errors */ 
+    --color-focus: #fdc57b;
+    --color-dark: #394a51;
+    --color-light: #fbf2d5;
+    --font-family: "Open Sans", sans-serif;
+    font-family: var(--font-family);
+}
+
+body {
+    background: var(--color-light);
+    display: flex;
+    flex-direction: row;
+    color: var(--color-dark);
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+main {
+    margin-left: 40px;
+}
+/* For flashed messages; make them stand out using red and italics */
+
+#messages {
+    color: var(--color-hilite);
+    font-style: italic;
+}
+
+h1 {
+    font-size: 200%;
+    color: var(--color-header);
+    border-style: solid;
+    border-width: 0 0 5px 0;
+    border-bottom-color: var(--color-focus);
+    text-shadow: 1px 1px 1px var(--color-focus),
+                 1px 1px 1px var(--color-focus);
+}
+    
+/* for a simple navbar. Talk to Scott if you want drop-downs. */
+nav > ul {
+    display: flex;
+    flex-direction: column;
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+}
+
+nav > ul > li {
+    flex: 0 0 auto;
+    width: 15em; 
+}
+
+nav button, nav a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box; /* easier to make button and A the same size */
+    width: 100%;
+    height: 60px;
+    padding: 15px;
+    margin: 10px;
+    background-color: var(--color-header); /* was #3498db */
+    border-radius: 1em;
+    border-style: solid;
+    border-width: 0 5px 5px 0;
+    border-bottom-color: var(--color-focus);
+    border-right-color: var(--color-dark);
+    cursor: pointer;
+    /* Firefox uses font -apple-system unless I repeat the font spec here. */
+    font-family: var(--font-family);
+
+    font-size: 1rem;
+    text-decoration: none;
+    text-shadow: 1px 1px 1px var(--color-dark),
+                 2px 2px 1px var(--color-dark);
+    color: var(--color-light);
+}
+
+/* Only the top-level buttons are centered; lower ones are left-aligned. */
+nav > ul > li > button , nav > ul > li > a {
+    text-align: center;
+}
+
+/* because of the margin trick, this can only be used for the last element */
+
+nav li.right {
+    margin-left: auto;
+}
+
+nav button:hover, button:focus, nav a:hover, nav a:focus {
+    background-color: var(--color-focus);
+    color: var(--color-dark);
+    border-right-color: var(--color-header);
+    border-bottom-color: var(--color-dark);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+}
+
+fieldset {
+    border: 3px solid var(--color-focus);
+    border-radius: 1em;
+}
+
+label {
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+    background-color: var(--color-header);
+    color: var(--color-light);
+    padding: 6px;
+}
+
+legend {
+    font-weight: bold;
+}
+
+select {
+    margin: 25px 5px 25px 25px;
+    padding: 5px;
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    background-color: var(--color-light);
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+}
+
+select:focus {
+    outline: none;
+}
+
+::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: gray;
+}
+
+input {
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    color: var(--color-dark);
+    background-color: var(--color-light);
+    margin: 5px;
+    padding: 5px;
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--color-header);
+}
+
+/* button design */
+input[type=submit] {
+  font-family: "Open Sans", sans-serif;
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--color-dark);
+  cursor: pointer;
+  border: 3px solid;
+  padding: 0.25em 0.5em;
+  box-shadow: 1px 1px 0px 0px, 2px 2px 0px 0px, 3px 3px 0px 0px, 4px 4px 0px 0px, 5px 5px 0px 0px;
+  position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+input[type=submit]:hover {
+    background-color: var(--color-focus);
+    color: var(--color-header);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+    
+}
+
+input[type=submit]:active {
+  box-shadow: 0px 0px 0px 0px;
+  top: 5px;
+  left: 5px;
+}
+
+@media (min-width: 768px) {
+    input[type=submit] {
+    padding: 0.25em 0.75em;
+  }
+}

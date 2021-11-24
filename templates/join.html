@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>{{ page_title }}</h1>
+<br>
+
+<form method=POST action="{{url_for('join')}}">
+
+    <fieldset>
+    <legend>Movie Data</legend>
+        <table>
+            <tr><td><label for="movie-tt" accesskey="i">(i) Movie ID/TT:</label></td>
+                <td><input id="movie-tt" type="text" name="movie-tt" placeholder="some id number..."></td></tr>
+            <tr><td><label for="movie-title" accesskey="t">(t) Movie Title:</label></td>
+                <td><input id="movie-title" type="text" name="movie-title" placeholder="some title..."></td></tr>
+            <tr><td><label for="movie-release" accesskey="r">(r) Movie Release Year:</label></td>
+                <td><input id="movie-release" type="text" name="movie-release" placeholder="some year..."></td></tr>
+        </table>
+    </fieldset>
+
+    <p> <input type="submit" value="Insert Movie"> </p>
+
+</form>
+
+{% endblock %}
