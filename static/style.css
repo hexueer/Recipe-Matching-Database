@@ -76,7 +76,6 @@ nav button, nav a {
     cursor: pointer;
     /* Firefox uses font -apple-system unless I repeat the font spec here. */
     font-family: var(--font-family);
-
     font-size: 1rem;
     text-decoration: none;
     text-shadow: 1px 1px 1px var(--color-dark),
@@ -116,11 +115,12 @@ label {
     border-right-color: var(--color-dark);
     background-color: var(--color-header);
     color: var(--color-light);
-    padding: 6px;
+    padding: 3px;
 }
 
 legend {
     font-weight: bold;
+    padding: 5px;
 }
 
 select {
@@ -150,6 +150,7 @@ input {
     padding: 5px;
     border-bottom-color: var(--color-dark);
     border-right-color: var(--color-dark);
+    width: 200px;
 }
 
 input:focus {
@@ -159,20 +160,20 @@ input:focus {
 
 /* button design */
 input[type=submit] {
-  font-family: "Open Sans", sans-serif;
-  font-size: 16px;
-  letter-spacing: 2px;
-  text-decoration: none;
-  text-transform: uppercase;
-  color: var(--color-dark);
-  cursor: pointer;
-  border: 3px solid;
-  padding: 0.25em 0.5em;
-  box-shadow: 1px 1px 0px 0px, 2px 2px 0px 0px, 3px 3px 0px 0px, 4px 4px 0px 0px, 5px 5px 0px 0px;
-  position: relative;
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: manipulation;
+    font-family: "Open Sans", sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+    color: var(--color-dark);
+    cursor: pointer;
+    border: 3px solid;
+    padding: 0.25em 0.5em;
+    box-shadow: 1px 1px 0px 0px, 2px 2px 0px 0px, 3px 3px 0px 0px, 4px 4px 0px 0px, 5px 5px 0px 0px;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
 }
 
 input[type=submit]:hover {
@@ -184,9 +185,78 @@ input[type=submit]:hover {
 }
 
 input[type=submit]:active {
-  box-shadow: 0px 0px 0px 0px;
-  top: 5px;
-  left: 5px;
+    box-shadow: 0px 0px 0px 0px;
+    top: 5px;
+    left: 5px;
+}
+
+/* Style the tab */
+.tab {
+    margin-top: 10px;
+    overflow: hidden;
+    border: 3px solid var(--color-dark);
+    border-bottom: none;
+    border-left: 3px solid var(--color-focus);
+    border-top: 3px solid var(--color-focus);
+    border-radius: 1em 1em 0 0;
+}
+  
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 1s;
+    color: var(--color-dark);
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+    width: 50%;
+}
+  
+/* Change background color of buttons on hover */
+.tab button:hover {
+    text-shadow: 1px 1px 1px var(--color-focus),
+                 2px 2px 1px var(--color-focus);
+}
+  
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: var(--color-focus);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+}
+  
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 20px;
+    border: 3px solid var(--color-dark);
+    border-left: none;
+    border-top: none;
+    border-radius: 0 0 1em 1em;
+    background-color: var(--color-focus);
+    -webkit-animation: fadeEffect 1s;
+    animation: fadeEffect 1s;
+}
+
+.tabcontent > form > fieldset {
+    border: 3px solid var(--color-dark);
+    border-radius: 1em;
+}
+
+/* Fade in tabs */
+@-webkit-keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+  
+@keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
 }
 
 @media (min-width: 768px) {

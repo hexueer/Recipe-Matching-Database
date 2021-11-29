@@ -22,20 +22,13 @@
                 </ul>
 
                 {% if user %}
-
-                <form method="post" action="{{url_for('logout')}}">
-                        <button>logout {{user}}</button>
+                <form method="get" action="{{url_for('logout')}}">
+                    <p><input type="submit" value="logout {{user}}">
                 </form>
     
                 {% else %}
-                <form method="post" action="{{url_for('login')}}">
-                        <p><label>User: <input type=text name="loginname"></label>
-                        <p><label>Pass: <input type=password name="loginpass"></label>
-                        <p><input type="submit" value="login">
-                </form>
-
-                <form action="{{url_for('join')}}">
-                    <p><input type="submit" value="join">
+                <form method="get" action="{{url_for('login')}}">
+                    <p><input type="submit" value="login/register">
                 </form>
                 
                 {% endif %}

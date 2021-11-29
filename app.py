@@ -27,85 +27,108 @@ app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
 @app.route('/')
 def index():
-    user = session.get('user','')
-    return render_template('index.html', page_title="RMD", user=user)
+    username = session.get('username','')
+    return render_template('index.html', page_title="RMD", user=username)
 
 @app.route('/insert/', methods=['GET', 'POST'])
 def insert():
-    pass
+    # logged in?
+    if 'username' in session:
+        username = session.get('username')
+        # insert code
+    else:
+        # flash, cannot insert recipe without being logged in
+        pass
 
 @app.route('/update/<int:rid>', methods=['GET', 'POST'])
 def update(rid):
-    pass
+    # logged in?
+    if 'username' in session:
+        username = session.get('username')
+        # update code
+    else:
+        # flash, cannot update recipe without being logged in
+        pass
 
 @app.route('/search/', methods=['GET', 'POST'])
 def search():
     pass
 
-@app.route('/join/', methods=["POST"])
-def join():
-    username = request.form.get('username')
-    passwd = request.form.get('password')
-    # if passwd1 != passwd2:
-    #     flash('passwords do not match')
-    #     return redirect( url_for('index'))
-    hashed = bcrypt.hashpw(passwd.encode('utf-8'),
-                           bcrypt.gensalt())
-    stored = hashed.decode('utf-8')
-    print(passwd, type(passwd1), hashed, stored)
-    conn = dbi.connect()
-    curs = dbi.cursor(conn)
-    try:
-        curs.execute('''INSERT INTO user(uid,username,hashed)
-                        VALUES(null,%s,%s)''',
-                     [username, stored])
-        conn.commit()
-    except Exception as err:
-        flash('That username is taken: {}'.format(repr(err)))
-        return redirect(url_for('index'))
-    curs.execute('select last_insert_id()')
-    row = curs.fetchone()
-    uid = row[0]
-    flash('FYI, you were issued UID {}'.format(uid))
-    session['username'] = username
-    session['uid'] = uid
-    session['logged_in'] = True
-    session['visits'] = 1
-    return redirect( url_for('user', username=username) )
-
-@app.route('/login/', methods=["POST"])
+@app.route('/login/', methods=['GET', 'POST'])
 def login():
-    username = request.form.get('username')
-    passwd = request.form.get('password')
-    conn = dbi.connect()
-    curs = dbi.dict_cursor(conn)
-    curs.execute('''SELECT uid,hashed
-                    FROM user
-                    WHERE username = %s''',
-                 [username])
-    row = curs.fetchone()
-    if row is None:
-        # Same response as wrong password
-        flash('login incorrect. Try again or join')
-        return redirect( url_for('index'))
-    stored = row['hashed']
-    print('database has stored: {} {}'.format(stored,type(stored)))
-    print('form supplied passwd: {} {}'.format(passwd,type(passwd)))
-    hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
-                            stored.encode('utf-8'))
-    hashed2_str = hashed2.decode('utf-8')
-    print('rehash is: {} {}'.format(hashed2_str,type(hashed2_str)))
-    if hashed2_str == stored:
-        print('they match!')
-        flash('successfully logged in as '+username)
-        session['username'] = username
-        session['uid'] = row['uid']
-        session['logged_in'] = True
-        session['visits'] = 1
-        return redirect( url_for('user', username=username) )
+    # render login/register page first
+    if request.method == 'GET':
+        return render_template('login.html', page_title="Login/Register")
+
     else:
-        flash('login incorrect. Try again or join')
-        return redirect( url_for('index'))
+        # if first-time user
+        if request.form['submit'] == 'register':
+            fullname = request.form.get('fullname')
+            email = request.form.get('email')
+            username = request.form.get('username')
+            passwd = request.form.get('password')
+            passwd2 = request.form.get('password2')
+            if passwd != passwd2:
+                flash('passwords do not match')
+                return redirect( url_for('index'))
+            hashed = bcrypt.hashpw(passwd.encode('utf-8'),
+                                bcrypt.gensalt())
+            stored = hashed.decode('utf-8')
+            # print(passwd, type(passwd), hashed, stored)
+
+            conn = dbi.connect()
+            curs = dbi.cursor(conn)
+            try:
+                curs.execute('''INSERT INTO user(name,email,username,hashed)
+                                VALUES(%s, %s, %s, %s)''',
+                            [fullname, email, username, stored])
+                conn.commit()
+
+            except Exception as err:
+                flash('That username is taken: {}'.format(repr(err)))
+                return redirect(url_for('index'))
+
+            curs.execute('select last_insert_id()')
+            row = curs.fetchone()
+            uid = row[0]
+            flash('FYI, you were issued UID {}'.format(uid))
+            session['username'] = username
+            session['uid'] = uid
+            session['logged_in'] = True
+            session['visits'] = 1
+            return redirect( url_for('index', page_title="RMD", user=username) )
+            # return redirect( url_for('user', username=username) )
+
+        # else login
+        else:
+            username = request.form.get('username')
+            passwd = request.form.get('password')
+
+            conn = dbi.connect()
+            row = helper.validate_login(conn, username)
+            if row is None:
+                # Same response as wrong password
+                flash('login incorrect. Try again or join')
+                return redirect( url_for('login'))
+            stored = row['hashed']
+            # print('database has stored: {} {}'.format(stored,type(stored)))
+            # print('form supplied passwd: {} {}'.format(passwd,type(passwd)))
+            hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
+                                    stored.encode('utf-8'))
+            hashed2_str = hashed2.decode('utf-8')
+            # print('rehash is: {} {}'.format(hashed2_str,type(hashed2_str)))
+            if hashed2_str == stored:
+                # print('they match!')
+                flash('successfully logged in as '+username)
+                session['username'] = username
+                session['uid'] = row['uid']
+                session['logged_in'] = True
+                session['visits'] = 1
+                return redirect( url_for('index', page_title="RMD", user=username) )
+                # return redirect( url_for('user', username=username) )
+            else:
+                flash('login incorrect. Try again or join')
+                return redirect( url_for('login'))
 
 @app.route('/logout/')
 def logout():

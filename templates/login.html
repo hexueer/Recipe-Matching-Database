@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<!-- Tab links -->
+<div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'login')" id="defaultOpen">login</button>
+        <button class="tablinks" onclick="openTab(event, 'register')">register</button>
+    </div>
+  
+    <!-- Tab content -->
+    <div id="login" class="tabcontent">
+        <form method="post" action="{{url_for('login')}}">
+            <fieldset>
+            <legend>login credentials</legend>
+                <table>
+                    <tr><td><label for="username">Username: </label></td>
+                        <td><input type=text name="username"></td></tr>
+                    <tr><td><label for="password">Password:</label></td>
+                        <td><input type=password name="password"></td></tr>
+                </table>
+            </fieldset>
+        
+            <p><input type="submit" name="submit" value="login">
+        </form>
+    </div>
+  
+    <div id="register" class="tabcontent">
+        <form method="post" action="{{url_for('login')}}">
+            <fieldset>
+            <legend>Make an Account</legend>
+                <table>
+                    <tr><td><label for="fullname">Full Name: </label></td>
+                        <td><input type=text name="fullname"></td></tr>
+                    <tr><td><label for="email">Email: </label></td>
+                        <td><input type=text name="email"></td></tr>
+                    <tr><td><label for="username">Username: </label></td>
+                        <td><input type=text name="username"></td></tr>
+                    <tr><td><label for="password">Password:</label></td>
+                        <td><input type=password name="password"></td></tr>
+                    <tr><td><label for="password2">Re-type Password:</label></td>
+                        <td><input type=password name="password2"></td></tr>
+                </table>
+            </fieldset>
+        
+            <p><input type="submit" name="submit" value="register">
+        </form>
+    </div>
+{% endblock %}
+
+{% block end_scripts %}
+<script>
+    // Get the element with id="defaultOpen" and click on it
+    document.getElementById("defaultOpen").click();
+
+    function openTab(event, action) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(action).style.display = "block";
+      event.currentTarget.className += " active";
+    }
+    </script>
+{% endblock %}
