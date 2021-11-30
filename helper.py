@@ -102,7 +102,8 @@ def recipe_lookup(conn, rid):
         return (["Recipe does not exist"], "Error", "Error")
 
     curs.execute('''select user.name from user 
-                    join recipe where recipe.rid = %s''', [rid])
+                    join recipe using (uid)
+                    where recipe.rid = %s''', [rid])
     user_name = curs.fetchone()
     #get ingredients with name, amount and measurement_unit
     return (recipe, user_name)
