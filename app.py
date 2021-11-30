@@ -109,6 +109,29 @@ def update(rid):
 def search():
     return render_template('search.html')
 
+def recipe_lookup(conn, rid):
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select * from recipe where rid = %s''', [rid])
+    #NEED TO HANDLE CASE IF RECIPE DOES NOT EXIST
+    recipe = curs.fetchall()[0]
+    curs.execute('''select user.name from user join recipe where recipe.rid = %s''', [rid])
+    user_name = curs.fetchall()[0]
+    #get ingredients with name, amount and measurement_unit
+    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit from ingredient left join uses using (iid) where iid = ANY (select iid from uses inner join recipe where recipe.rid = 1)''')
+    ingredients = curs.fetchall()
+    return (recipe, user_name, ingredients)
+
+# @app.route('/recipe/<int:recipe_id>')
+@app.route('/recipe/<int:recipe_id>')
+def recipe(recipe_id):
+    conn = dbi.connect()
+    try:
+        recipe, creator, ingredients = recipe_lookup(conn, recipe_id)
+    except:
+        return render_template('error.html')
+    # tags = recipe.tag.split(",")
+    return render_template('recipe.html', recipe = recipe, creator = creator, ingredients = ingredients)
+
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     # render login/register page first
@@ -202,7 +225,7 @@ def logout():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    db_to_use = 'ac5_db' 
+    db_to_use = 'cw1_db' 
     dbi.use(db_to_use)
     print('will connect to {}'.format(db_to_use))
 
