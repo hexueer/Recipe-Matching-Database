@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+<h1>Recipe</h1>
+<div class = "recipe-detail">
+    <div class = container>
+        <div class= "row">
+            <div class = "col-2"></div>
+            <div class = "col-8">
+                <p>{{creator.name}}</p>
+                <h2>{{recipe.title}}</h2>
+                <img id = "recipe-image" src= {{recipe.image_path}} alt="Recipe Image Was Not Found" width="104" height="142">
+                <div class = "description">
+                    <div class = "ingredients">
+                            <p>Ingredients:</p>
+                            <ul>
+                                {% for ingredient in ingredients %}
+                                <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
+                                {% endfor %}
+                            </ul>
+                    </div>
+                    <div class = "instructions">
+                        <p>Instructions:</p>
+                        <p id = "inst">{{recipe.instructions}}</p>
+                    </div>
+                    <!-- <div class = "tags">
+                        <p>Tags: </p>
+                        <p id = "inst">{{recipe.tag}}</p>
+                        <ul>
+                            {% for tag in recipe.tag %}
+                            <li>{{tag}}</li>
+                            {% endfor %}
+                        </ul>
+                    </div> -->
+                </div>
+                <!-- <div class = "dates">
+                    <p>Date Posted: </p>
+                    <p>Latest Update: </p>
+                </div> -->
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

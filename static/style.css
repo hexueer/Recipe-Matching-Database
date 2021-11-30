@@ -299,3 +299,46 @@ textarea {
     color : #a86123;
     margin-left: 3em;
 }
+
+/* Cherie's CSS */
+.recipe-detail {
+    /*outline-style: solid;
+    outline-color: var( --color-header);*/
+    width: 950px;
+    padding: 50px;
+    overflow-wrap: break-word;
+}
+
+h2 {
+    font-weight: bold;
+    font-size: 50px;
+}
+
+#recipe-image {
+    padding-bottom: 30px;
+}
+
+.description {
+    display: flex;
+}
+
+.instructions {
+    padding: 20px;
+    flex: 1;
+    border: 2px solid var(--color-focus);
+    border-radius: 1em;
+    text-align: left;
+    margin-left: 30px;
+}
+
+.ingredients {
+    padding: 20px;
+    width: 250px;
+    border: 2px solid var(--color-focus);
+    border-radius: 1em;
+    text-align: left;
+}
+
+#inst {
+    text-transform: none;
+}
