@@ -66,6 +66,9 @@ def insert():
             last_updated_date = date.today()
 
             error = []
+            # check for duplicated title
+            if not helper.check_title(conn, title): 
+                error.append("Sorry, this recipe title already exists. Please choose another.")
             if len(title) == 0: 
                 error.append("Please enter a recipe title.")
             if len(instructions) == 0: 
@@ -81,8 +84,10 @@ def insert():
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added == "success":
                     flash('Form submission successful.')
-                    return render_template('insert.html', page_title="Insert", user=username)
-                    # return redirect(url_for('update', oldtt=tt))
+                    recipe = helper.get_recipe(conn, title)
+                    rid = helper.recipe_lookup(conn, recipe['rid'])
+                    return redirect(url_for('recipe', recipe_id = rid))
+                    # return redirect(url_for('update', rid=tt))
                 else: #probably a duplicate error
                     error.append(added)
                     return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
@@ -121,18 +126,19 @@ def search():
         else: 
             title = request.form['recipe-title'] 
             #list of user selected ingredients
-            selectedIngredients = request.form.getlist('recipe-tags')
-            ingredients = ""
-            for i in range(len(selectedIngredients)): 
-                ingredients += selectedIngredients[i]
-                if i < len(selectedIngredients)-1: 
-                    ingredients += ","
+            selectedIngredients = request.form.getlist('recipe-ingredients')
+            print(selectedIngredients) #  list ['3', '2', '4']
+            # ingredients = ""
+            # for i in range(len(selectedIngredients)): 
+            #     ingredients += selectedIngredients[i]
+            #     if i < len(selectedIngredients)-1: 
+            #         ingredients += ","
 
-            post_date = date.today()
-            last_updated_date = date.today()
+            # post_date = date.today()
+            # last_updated_date = date.today()
 
             error = []
-            if len(title) == 0 and len(ingredients) == 0: 
+            if len(title) == 0 and len(selectedIngredients) == 0: 
                 error.append("Please enter either a recipe title or select ingredients.")
             
             # if there are no error messages
@@ -140,9 +146,10 @@ def search():
                 conn = dbi.connect()
                 uid = helper.getUID(conn, username)
                 #we cannot store any user's searches because they do not have their personal databases
-                searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
+                # searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
+                searchResults = helper.searching(conn,title,selectedIngredients)
                 #if recipes were not found
-                if len(searchResults) < 0:
+                if len(searchResults) < 1:
                     error = ['No recipes matched your search.']
                     return render_template('search.html', page_title="Search", user=username, error=error)
                     # return redirect(url_for('update', oldtt=tt))
@@ -161,28 +168,17 @@ def search():
         
     return render_template('search.html')
 
-def recipe_lookup(conn, rid):
-    curs = dbi.dict_cursor(conn)
-    curs.execute('''select * from recipe where rid = %s''', [rid])
-    #NEED TO HANDLE CASE IF RECIPE DOES NOT EXIST
-    recipe = curs.fetchall()[0]
-    curs.execute('''select user.name from user join recipe where recipe.rid = %s''', [rid])
-    user_name = curs.fetchall()[0]
-    #get ingredients with name, amount and measurement_unit
-    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit from ingredient left join uses using (iid) where iid = ANY (select iid from uses inner join recipe where recipe.rid = 1)''')
-    ingredients = curs.fetchall()
-    return (recipe, user_name, ingredients)
-
-# @app.route('/recipe/<int:recipe_id>')
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
     conn = dbi.connect()
+    if 'username' in session:
+        username = session.get('username')
     try:
-        recipe, creator, ingredients = recipe_lookup(conn, recipe_id)
+        recipe, creator, ingredients = helper.recipe_lookup(conn, recipe_id)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
-    return render_template('recipe.html', recipe = recipe, creator = creator, ingredients = ingredients)
+    return render_template('recipe.html', page_title="Recipe", user=username, recipe = recipe, creator = creator, ingredients = ingredients)
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():

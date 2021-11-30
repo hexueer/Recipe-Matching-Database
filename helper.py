@@ -52,8 +52,8 @@ def get_ingredients(conn):
     return curs.fetchall()
 
 #finding user search input in database
-def searching(conn,title,ingredients,post_date,last_updated_date,uid):
-    '''finds if user search input matches recipies in recipe database 
+def searching(conn,title,ingredients):
+    '''finds if user search input matches recipes in recipe database 
      using given params. 
     ''' 
     # curs = dbi.dict_cursor(conn)
@@ -70,8 +70,17 @@ def searching(conn,title,ingredients,post_date,last_updated_date,uid):
     #              [query])
     # return curs.fetchall()
 
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'iid = %s or ' * (len(ingredients)-1)
+    curs.execute('''select rid 
+                    from uses
+                    where ''' + placeholders + '''iid = %s
+                    '''
+                    ,ingredients)
+    return curs.fetchall()
+
     #return list of recipes
-    return ['a','b','c']
+    # return ['a','b','c']
 
     # recipe id
     # ingredient id
