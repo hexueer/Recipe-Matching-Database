@@ -66,6 +66,9 @@ def insert():
             last_updated_date = date.today()
 
             error = []
+            # check for duplicated title
+            if not helper.check_title(conn, title): 
+                error.append("Sorry, this recipe title already exists. Please choose another.")
             if len(title) == 0: 
                 error.append("Please enter a recipe title.")
             if len(instructions) == 0: 
@@ -81,8 +84,10 @@ def insert():
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added == "success":
                     flash('Form submission successful.')
-                    return render_template('insert.html', page_title="Insert", user=username)
-                    # return redirect(url_for('update', oldtt=tt))
+                    recipe = helper.get_recipe(conn, title)
+                    rid = helper.recipe_lookup(conn, recipe['rid'])
+                    return redirect(url_for('recipe', recipe_id = rid))
+                    # return redirect(url_for('update', rid=tt))
                 else: #probably a duplicate error
                     error.append(added)
                     return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
@@ -109,24 +114,11 @@ def update(rid):
 def search():
     return render_template('search.html')
 
-def recipe_lookup(conn, rid):
-    curs = dbi.dict_cursor(conn)
-    curs.execute('''select * from recipe where rid = %s''', [rid])
-    #NEED TO HANDLE CASE IF RECIPE DOES NOT EXIST
-    recipe = curs.fetchall()[0]
-    curs.execute('''select user.name from user join recipe where recipe.rid = %s''', [rid])
-    user_name = curs.fetchall()[0]
-    #get ingredients with name, amount and measurement_unit
-    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit from ingredient left join uses using (iid) where iid = ANY (select iid from uses inner join recipe where recipe.rid = 1)''')
-    ingredients = curs.fetchall()
-    return (recipe, user_name, ingredients)
-
-# @app.route('/recipe/<int:recipe_id>')
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
     conn = dbi.connect()
     try:
-        recipe, creator, ingredients = recipe_lookup(conn, recipe_id)
+        recipe, creator, ingredients = helper.recipe_lookup(conn, recipe_id)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
@@ -225,7 +217,7 @@ def logout():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    db_to_use = 'cw1_db' 
+    db_to_use = 'og102_db' 
     dbi.use(db_to_use)
     print('will connect to {}'.format(db_to_use))
 

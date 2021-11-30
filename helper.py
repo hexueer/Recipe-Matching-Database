@@ -41,6 +41,23 @@ def insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,uid,a
         error = "Error uploading recipe."
         return error
 
+def check_title(conn, title): 
+    '''selects titles from recipe like given title parameter
+       returns True if no matches found, false if another recipe already exists. 
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    try:
+        curs.execute('''
+            select title from recipe
+            where title = %s''', 
+                    [title]) 
+        titles = curs.fetchall()
+        return len(titles) == 0
+    except: 
+        curs.close()
+        error = "Error checking for duplicate recipes."
+        return error
+
 def get_ingredients(conn): 
     '''Returns all ingredient ids and names.
     ''' 
@@ -50,6 +67,53 @@ def get_ingredients(conn):
         from ingredient
         order by name''')
     return curs.fetchall()
+
+# geet recipe with title
+def get_recipe(conn,title): 
+    '''Returns recipe data from recipes using 
+       provided recipe title.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''
+        select * 
+        from recipe  
+        where title = %s''',
+                 [title])
+    # fetch the first (and only) value
+    recipe = curs.fetchone()
+
+    # if no recipe is found, just return an empty (None) object
+    if recipe == None: 
+        return None
+    
+    return recipe
+
+# get recipe with rid
+def recipe_lookup(conn, rid):
+    '''Returns recipe data from given rid parameter.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select * from recipe 
+                    where rid = %s''', [rid])
+    recipe = curs.fetchone()
+
+    # if recipe does not exist
+    if len(recipe.keys()) == 0: 
+        return (["Recipe does not exist"], "Error", "Error")
+
+    curs.execute('''select user.name from user 
+                    join recipe where recipe.rid = %s''', [rid])
+    user_name = curs.fetchone()
+    #get ingredients with name, amount and measurement_unit
+    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit 
+                    from ingredient 
+                    left join uses using (iid) 
+                    where iid = ANY 
+                        (select iid from uses 
+                        inner join recipe 
+                        where recipe.rid = 1)''')
+    ingredients = curs.fetchall()
+    return (recipe, user_name, ingredients)
 
 # update recipe
 
