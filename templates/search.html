@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Search for Recipes</h1>
+
+<div class=container>
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <form method="post" action="{{url_for('search')}}">
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Search</legend>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td><label for="recipe-title">Search by Recipe Title: </label></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-tags">Search by Ingredients: </label></td>
+                                <td>
+                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                        {% for tag in tags %}
+                                        <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8 justify-content-center">
+                        <p class="pbtn">
+                            <input type="submit" value="Search">
+                        </p>
+                    </div>
+                    <div class="col-2"></div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+{% endblock %}

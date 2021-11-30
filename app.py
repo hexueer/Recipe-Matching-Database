@@ -107,7 +107,7 @@ def update(rid):
 
 @app.route('/search/', methods=['GET', 'POST'])
 def search():
-    pass
+    return render_template('search.html')
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -160,7 +160,6 @@ def login():
             passwd = request.form.get('password')
 
             print(username)
-
             conn = dbi.connect()
             row = helper.validate_login(conn, username)
             if row is None:
@@ -203,7 +202,7 @@ def logout():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    db_to_use = 'iho_db' 
+    db_to_use = 'ac5_db' 
     dbi.use(db_to_use)
     print('will connect to {}'.format(db_to_use))
 
