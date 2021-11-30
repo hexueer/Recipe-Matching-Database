@@ -70,7 +70,7 @@ insert into user(name, username, email, hashed) values ('Alex Chin', 'ac5', 'ac5
 insert into user(name, username, email, hashed) values ('Cherie Wang', 'cw1', 'cw1@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
 insert into user(name, username, email, hashed) values ('Olivia Giandrea', 'og102', 'og102@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
 insert into user(name, username, email, hashed) values ('Ivy Ho', 'iho', 'iho@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
-insert into user(name, username, email, hashed) values ('Scott Anderson', 'scott.anderson', 'scott.anderson@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+insert into user(name, username, email, hashed) values ('Scott Anderson', 'scott', 'scott.anderson@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
 
 insert into ingredient(name) values ('tomato');
 insert into ingredient(name) values ('bread');

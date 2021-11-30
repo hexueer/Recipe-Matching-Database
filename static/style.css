@@ -124,7 +124,6 @@ legend {
 }
 
 select {
-    margin: 25px 5px 25px 25px;
     padding: 5px;
     border: 3px solid var(--color-header);
     border-radius: 0.5em;
@@ -233,7 +232,7 @@ input[type=submit]:active {
 /* Style the tab content */
 .tabcontent {
     display: none;
-    padding: 20px 50px 20px 20px;
+    padding: 30px;
     border: 3px solid var(--color-dark);
     border-left: none;
     border-top: none;
@@ -286,6 +285,14 @@ form {
 
 fieldset,table {
     width:100%
+}
+
+textarea {
+    width: 90%;
+}
+
+#recipe-title {
+    width: 90%;
 }
 
 .error {

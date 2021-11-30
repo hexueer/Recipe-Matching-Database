@@ -3,7 +3,6 @@
 {% block main_content %}
 
 <h1>Add a Recipe</h1>
-<br>
 
 <div class=container>
     <div class="row">
@@ -20,7 +19,7 @@
                                 <td><input id="recipe-title" type="text" name="recipe-title"></td>
                             </tr>
                             <tr>
-                                <td><label for="recipe-tags">Tags: (hold ctrl to select multiple)</label></td>
+                                <td><label for="recipe-tags">Tags: </label></td>
                                 <td>
                                     <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
                                         {% for tag in tags %}

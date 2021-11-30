@@ -14,6 +14,7 @@ import cs304dbi as dbi
 import random
 import helper
 import bcrypt
+from datetime import date
 
 app.secret_key = 'your secret here'
 # replace that with a random key
@@ -38,10 +39,10 @@ def insert():
         conn = dbi.connect()
         ingredientList = helper.get_ingredients(conn)
         tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
-        unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice']
+        unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice', 'piece']
         
         if request.method == 'GET':
-            return render_template('insert.html', ingredients=ingredientList, units=unitList, tags=tagList)
+            return render_template('insert.html', page_title="Insert", user=username, ingredients=ingredientList, units=unitList, tags=tagList)
         else: 
             title = request.form['recipe-title'] 
             instructions = request.form['recipe-instructions']
@@ -75,18 +76,19 @@ def insert():
             # if there are no error messages
             if len(error) == 0: 
                 conn = dbi.connect()
-                added = helper.insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,amounts)
+                uid = helper.getUID(conn, username)
+                added = helper.insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,uid,amounts)
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added == "success":
                     flash('Form submission successful.')
-                    return render_template('insert.html')
+                    return render_template('insert.html', page_title="Insert", user=username)
                     # return redirect(url_for('update', oldtt=tt))
                 else: #probably a duplicate error
                     error.append(added)
-                    return render_template('insert.html', error=error, ingredients=ingredientList, units=unitList, tags=tagList)
+                    return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
             # if there are error messages
             else: 
-                return render_template('insert.html', error=error, ingredients=ingredientList, units=unitList, tags=tagList) 
+                return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList) 
     else:
         # flash, cannot insert recipe without being logged in
         error = ['Please log in to insert a recipe.']
