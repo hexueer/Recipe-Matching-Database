@@ -36,7 +36,7 @@ def insert():
     if 'username' in session:
         username = session.get('username')
         conn = dbi.connect()
-        ingredientList = recipes.get_ingredients(conn)
+        ingredientList = helper.get_ingredients(conn)
         tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
         unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice']
         
@@ -75,7 +75,7 @@ def insert():
             # if there are no error messages
             if len(error) == 0: 
                 conn = dbi.connect()
-                added = recipes.insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,amounts)
+                added = helper.insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,amounts)
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added == "success":
                     flash('Form submission successful.')

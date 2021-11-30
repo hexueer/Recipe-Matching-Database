@@ -233,7 +233,7 @@ input[type=submit]:active {
 /* Style the tab content */
 .tabcontent {
     display: none;
-    padding: 20px;
+    padding: 20px 50px 20px 20px;
     border: 3px solid var(--color-dark);
     border-left: none;
     border-top: none;
