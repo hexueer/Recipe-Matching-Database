@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Add a Recipe</h1>
+<br>
+
+<div class=container>
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <form method="post" action="{{url_for('add')}}">
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Recipe Data</legend>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td><label for="recipe-title">Recipe Title: </label></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-tags">Tags: (hold ctrl to select multiple)</label></td>
+                                <td>
+                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                        {% for tag in tags %}
+                                        <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-ingredients">Ingredients: </label></td>
+                                <td>
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">#</th>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Amount</th>
+                                                <th scope="col">Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for n in range(1, 6) %}
+                                                <tr>
+                                                    <th scope="row">{{n}}</th>
+                                                    <td>
+                                                        <select class="form-select" name="ingredient{{n}}">
+                                                            <option value="">Select an Ingredient</option>
+                                                            {% for ingredient in ingredients %}
+                                                            <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" name="amount{{n}}"></td>
+                                                    <td><select class="form-select" name="unit{{n}}">
+                                                        <option value="">Select a Unit</option>
+                                                        {% for unit in units %}
+                                                        <option value="{{ unit }}">{{ unit }}</option>
+                                                        {% endfor %}
+                                                    </select></td>
+                                               </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <!-- <select class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
+                                        {% for ingredient in ingredients %}
+                                        <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                        {% endfor %}
+                                    </select> -->
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-instructions">Instructions: </label></td>
+                                <td><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4"></textarea></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8 justify-content-center">
+                        <p class="pbtn">
+                            <input type="submit" value="Add Recipe">
+                        </p>
+                    </div>
+                    <div class="col-2"></div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+{% endblock %}

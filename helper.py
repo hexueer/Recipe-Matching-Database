@@ -1,6 +1,45 @@
 import cs304dbi as dbi
 
 # insert recipe
+def insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,amounts): 
+    '''inserts a recipe into the recipes table in my personal
+       database using given params. 
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    try: 
+        curs.execute('''
+            insert into recipe(title,instructions,tag,post_date,last_updated_date)
+            values (%s, %s, %s, %s, %s)''', 
+                    [title,instructions,tags,post_date,last_updated_date]) 
+        conn.commit()
+        curs.execute('''
+            select rid from recipe 
+            order by rid desc''')
+        rid = curs.fetchone()
+
+        for a in amounts: 
+            curs = dbi.dict_cursor(conn)
+            curs.execute('''
+                insert into measurements(rid, iid, amount, measurement_unit)
+                values (%s, %s, %s, %s)''', 
+                        [rid['rid'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
+            conn.commit()
+        curs.close()
+        return "success"
+    except: 
+        curs.close()
+        error = "Error uploading recipe."
+        return error
+
+def get_ingredients(conn): 
+    '''Returns all ingredient ids and names.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''
+        select * 
+        from ingredient
+        order by name''')
+    return curs.fetchall()
 
 # update recipe
 

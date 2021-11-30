@@ -48,6 +48,17 @@
         {% endif %}
         {% endwith %}
 
+        {% if error %}
+        <p class="error"><strong>Error: </strong>
+            <ul>
+            {% for e in error %}
+                <li class="error"> {{ e }} </li>
+            {% endfor %}
+            </ul>
+        </p>
+        <br>
+        {% endif %}
+
         {% block main_content %}
         <h1>Welcome!</h1>
         {% endblock %}

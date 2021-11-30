@@ -264,3 +264,31 @@ input[type=submit]:active {
     padding: 0.25em 0.75em;
   }
 }
+
+
+/* Olivia's CSS */
+.container {
+    text-align: center;
+}
+
+legend {
+    text-align: center;
+}
+
+.form-check-label {
+    float: left;
+}
+
+form {
+    align-self: center;
+    padding: 1em;
+}
+
+fieldset,table {
+    width:100%
+}
+
+.error {
+    color : #a86123;
+    margin-left: 3em;
+}
