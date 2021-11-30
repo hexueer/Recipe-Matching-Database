@@ -114,8 +114,8 @@ def search_ingredients(conn,ingredients):
     ''' 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
-    curs.execute('''select rid 
-                    from uses
+    curs.execute('''select distinct uses.rid, recipe.title
+                    from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''
                     ,ingredients)
@@ -142,8 +142,8 @@ def get_recipe_ingredients(conn, rid):
     curs.execute('''select uses.rid, ingredient.name, uses.amount, uses.measurement_unit 
                     from uses 
                     inner join ingredient using (iid) 
-                    where rid = %s''', [rid])
-    ingredients = curs.fetchall()
+                    where rid = %s''', 
+                    [rid])
     return curs.fetchall()
     
 
