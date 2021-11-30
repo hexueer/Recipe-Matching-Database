@@ -105,15 +105,8 @@ def recipe_lookup(conn, rid):
                     join recipe where recipe.rid = %s''', [rid])
     user_name = curs.fetchone()
     #get ingredients with name, amount and measurement_unit
-    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit 
-                    from ingredient 
-                    left join uses using (iid) 
-                    where iid = ANY 
-                        (select iid from uses 
-                        inner join recipe 
-                        where recipe.rid = %s)''', [rid])
-    ingredients = curs.fetchall()
-    return (recipe, user_name, ingredients)
+    return (recipe, user_name)
+
 #finding user search input in database
 def searching(conn,title,ingredients):
     '''finds if user search input matches recipes in recipe database 
@@ -135,8 +128,8 @@ def searching(conn,title,ingredients):
 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
-    curs.execute('''select rid 
-                    from uses
+    curs.execute('''select distinct uses.rid, recipe.title
+                    from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''
                     ,ingredients)
@@ -152,6 +145,16 @@ def searching(conn,title,ingredients):
     # for each ingredient in ingredients
     #     if there is an ingredient in a recipe add it
     
+def get_recipe_ingredients(conn, rid): 
+    '''Returns all ingredient ids and names.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select uses.rid, ingredient.name, uses.amount, uses.measurement_unit 
+                    from uses 
+                    inner join ingredient using (iid) 
+                    where rid = %s''', [rid])
+    ingredients = curs.fetchall()
+    return curs.fetchall()
     
 
 # update recipe
