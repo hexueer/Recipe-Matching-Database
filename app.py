@@ -117,7 +117,7 @@ def recipe_lookup(conn, rid):
     curs.execute('''select user.name from user join recipe where recipe.rid = %s''', [rid])
     user_name = curs.fetchall()[0]
     #get ingredients with name, amount and measurement_unit
-    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit from ingredient left join uses using (iid) where iid = ANY (select iid from uses inner join recipe where recipe.rid = 1)''')
+    curs.execute('''select ingredient.name, uses.amount, uses.measurement_unit from ingredient left join uses using (iid) where iid = ANY (select iid from uses inner join recipe where recipe.rid = %s)''', [rid])
     ingredients = curs.fetchall()
     return (recipe, user_name, ingredients)
 
