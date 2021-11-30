@@ -174,7 +174,8 @@ def recipe(recipe_id):
     if 'username' in session:
         username = session.get('username')
     try:
-        recipe, creator, ingredients = helper.recipe_lookup(conn, recipe_id)
+        recipe, creator = helper.recipe_lookup(conn, recipe_id)
+        ingredients = helper.get_recipe_ingredients(conn, recipe_id)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
