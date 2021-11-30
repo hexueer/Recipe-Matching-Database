@@ -114,6 +114,7 @@ def recipe_lookup(conn, rid):
                         where recipe.rid = %s)''', [rid])
     ingredients = curs.fetchall()
     return (recipe, user_name, ingredients)
+    
 #finding user search input in database
 def searching(conn,title,ingredients):
     '''finds if user search input matches recipes in recipe database 
@@ -135,8 +136,8 @@ def searching(conn,title,ingredients):
 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
-    curs.execute('''select rid 
-                    from uses
+    curs.execute('''select distinct uses.rid, recipe.title
+                    from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''
                     ,ingredients)
