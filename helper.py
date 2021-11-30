@@ -107,25 +107,11 @@ def recipe_lookup(conn, rid):
     #get ingredients with name, amount and measurement_unit
     return (recipe, user_name)
 
-#finding user search input in database
-def searching(conn,title,ingredients):
+# search by ingredients
+def search_ingredients(conn,ingredients):
     '''finds if user search input matches recipes in recipe database 
      using given params. 
     ''' 
-    # curs = dbi.dict_cursor(conn)
-    # query = "%" + ingredients[0] + "%"
-    # curs.execute('''
-    #     select u.rid,u.iid,ingredient.name,ingredient.iid
-    #     from uses as u 
-    #     inner join ingredient on u.iid = ingredient.iid
-    #     where u.rid = u.iid and ingredient.name like (
-    #         select r.title
-    #         from recipe as r
-    #         where r.title like %s
-    #     ); ''',
-    #              [query])
-    # return curs.fetchall()
-
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
     curs.execute('''select distinct uses.rid, recipe.title
@@ -135,15 +121,19 @@ def searching(conn,title,ingredients):
                     ,ingredients)
     return curs.fetchall()
 
-    #return list of recipes
-    # return ['a','b','c']
-
-    # recipe id
-    # ingredient id
-    
-    # if the recipe mataches the title then add it
-    # for each ingredient in ingredients
-    #     if there is an ingredient in a recipe add it
+# search by title
+def search_titles(conn,title):
+    '''Returns data of recipes with a title similar to the 
+       provided query, as a dictionary.
+    '''
+    curs = dbi.dict_cursor(conn)
+    title = "%" + title + "%"
+    curs.execute('''
+        select * 
+        from recipe
+        where title like %s''',
+                 [title])
+    return curs.fetchall()
     
 def get_recipe_ingredients(conn, rid): 
     '''Returns all ingredient ids and names.
