@@ -152,8 +152,8 @@ def get_recipe_ingredients(conn, rid):
     curs.execute('''select uses.rid, ingredient.name, uses.amount, uses.measurement_unit 
                     from uses 
                     inner join ingredient using (iid) 
-                    where rid = %s''', [rid])
-    ingredients = curs.fetchall()
+                    where rid = %s''', 
+                    [rid])
     return curs.fetchall()
     
 
