@@ -101,5 +101,5 @@ def validate_login(conn, username):
 # test functions here
 if __name__ == '__main__':
     dbi.cache_cnf()   # defaults to ~/.my.cnf
-    dbi.use('iho_db')
+    dbi.use('ac5_db')
     conn = dbi.connect()
