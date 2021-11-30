@@ -20,10 +20,10 @@
                                 <td><input id="recipe-title" type="text" name="recipe-title"></td>
                             </tr>
                             <tr>
-                                <td><label for="recipe-tags">Search by Ingredients: </label></td>
+                                <td><label for="recipe-ingredients">Search by Ingredients: </label></td>
                                 <td>
                                     <p>Select all the ingredients you have </p>
-                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                    <select class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
                                         {% for ingredient in ingredients %}
                                         <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
                                         {% endfor %}
@@ -42,7 +42,7 @@
                         {% if results %}
                         <td>
                             <p>Search Results </p>
-                            <p class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                            <p class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
                                 {% for searchResult in searchResults %}
                                 <p value="{{ searchResult }}">{{ searchResult }}</li>
                                 {% endfor %}

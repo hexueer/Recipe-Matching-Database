@@ -121,18 +121,19 @@ def search():
         else: 
             title = request.form['recipe-title'] 
             #list of user selected ingredients
-            selectedIngredients = request.form.getlist('recipe-tags')
-            ingredients = ""
-            for i in range(len(selectedIngredients)): 
-                ingredients += selectedIngredients[i]
-                if i < len(selectedIngredients)-1: 
-                    ingredients += ","
+            selectedIngredients = request.form.getlist('recipe-ingredients')
+            print(selectedIngredients) #  list ['3', '2', '4']
+            # ingredients = ""
+            # for i in range(len(selectedIngredients)): 
+            #     ingredients += selectedIngredients[i]
+            #     if i < len(selectedIngredients)-1: 
+            #         ingredients += ","
 
-            post_date = date.today()
-            last_updated_date = date.today()
+            # post_date = date.today()
+            # last_updated_date = date.today()
 
             error = []
-            if len(title) == 0 and len(ingredients) == 0: 
+            if len(title) == 0 and len(selectedIngredients) == 0: 
                 error.append("Please enter either a recipe title or select ingredients.")
             
             # if there are no error messages
@@ -140,9 +141,10 @@ def search():
                 conn = dbi.connect()
                 uid = helper.getUID(conn, username)
                 #we cannot store any user's searches because they do not have their personal databases
-                searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
+                # searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
+                searchResults = helper.searching(conn,title,selectedIngredients)
                 #if recipes were not found
-                if len(searchResults) < 0:
+                if len(searchResults) < 1:
                     error = ['No recipes matched your search.']
                     return render_template('search.html', page_title="Search", user=username, error=error)
                     # return redirect(url_for('update', oldtt=tt))
@@ -177,12 +179,14 @@ def recipe_lookup(conn, rid):
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
     conn = dbi.connect()
+    if 'username' in session:
+        username = session.get('username')
     try:
         recipe, creator, ingredients = recipe_lookup(conn, recipe_id)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
-    return render_template('recipe.html', recipe = recipe, creator = creator, ingredients = ingredients)
+    return render_template('recipe.html', page_title="Recipe", user=username, recipe = recipe, creator = creator, ingredients = ingredients)
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -277,7 +281,7 @@ def logout():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    db_to_use = 'cw1_db' 
+    db_to_use = 'iho_db' 
     dbi.use(db_to_use)
     print('will connect to {}'.format(db_to_use))
 
