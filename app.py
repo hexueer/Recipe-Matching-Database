@@ -119,22 +119,12 @@ def search():
     #the ingredients, which is why a user must be logged in to search for
     #a recipe versus what we initially planned
     ingredientList = helper.get_ingredients(conn)
-    print("ingredient list",ingredientList)
     if request.method == 'GET':
         return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList)
     else: 
         title = request.form['recipe-title'] 
         #list of user selected ingredients
         selectedIngredients = request.form.getlist('recipe-ingredients')
-        print(selectedIngredients) #  list ['3', '2', '4']
-        # ingredients = ""
-        # for i in range(len(selectedIngredients)): 
-        #     ingredients += selectedIngredients[i]
-        #     if i < len(selectedIngredients)-1: 
-        #         ingredients += ","
-
-        # post_date = date.today()
-        # last_updated_date = date.today()
 
         error = []
         if len(title) == 0 and len(selectedIngredients) == 0: 
@@ -144,7 +134,6 @@ def search():
         if len(error) == 0: 
             conn = dbi.connect()
             #we cannot store any user's searches because they do not have their personal databases
-            # searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
             searchResults = helper.searching(conn,title,selectedIngredients)
             #if recipes were not found
             if len(searchResults) < 1:
@@ -170,6 +159,7 @@ def recipe(recipe_id):
     try:
         recipe, creator = helper.recipe_lookup(conn, recipe_id)
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
+        print(ingredients)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
@@ -225,7 +215,6 @@ def login():
             username = request.form.get('username')
             passwd = request.form.get('password')
 
-            print(username)
             conn = dbi.connect()
             row = helper.validate_login(conn, username)
             if row is None:
