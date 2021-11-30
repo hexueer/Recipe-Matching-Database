@@ -114,6 +114,45 @@ def recipe_lookup(conn, rid):
                         where recipe.rid = 1)''')
     ingredients = curs.fetchall()
     return (recipe, user_name, ingredients)
+#finding user search input in database
+def searching(conn,title,ingredients):
+    '''finds if user search input matches recipes in recipe database 
+     using given params. 
+    ''' 
+    # curs = dbi.dict_cursor(conn)
+    # query = "%" + ingredients[0] + "%"
+    # curs.execute('''
+    #     select u.rid,u.iid,ingredient.name,ingredient.iid
+    #     from uses as u 
+    #     inner join ingredient on u.iid = ingredient.iid
+    #     where u.rid = u.iid and ingredient.name like (
+    #         select r.title
+    #         from recipe as r
+    #         where r.title like %s
+    #     ); ''',
+    #              [query])
+    # return curs.fetchall()
+
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'iid = %s or ' * (len(ingredients)-1)
+    curs.execute('''select rid 
+                    from uses
+                    where ''' + placeholders + '''iid = %s
+                    '''
+                    ,ingredients)
+    return curs.fetchall()
+
+    #return list of recipes
+    # return ['a','b','c']
+
+    # recipe id
+    # ingredient id
+    
+    # if the recipe mataches the title then add it
+    # for each ingredient in ingredients
+    #     if there is an ingredient in a recipe add it
+    
+    
 
 # update recipe
 

@@ -112,17 +112,73 @@ def update(rid):
 
 @app.route('/search/', methods=['GET', 'POST'])
 def search():
+    if 'username' in session:
+        username = session.get('username')
+        conn = dbi.connect()
+        #the get_ingredients function uses conn which means we need to be 
+        #connected to the database by being logged in in order to access 
+        #the ingredients, which is why a user must be logged in to search for
+        #a recipe versus what we initially planned
+        ingredientList = helper.get_ingredients(conn)
+        print("ingredient list",ingredientList)
+        if request.method == 'GET':
+            return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList)
+        else: 
+            title = request.form['recipe-title'] 
+            #list of user selected ingredients
+            selectedIngredients = request.form.getlist('recipe-ingredients')
+            print(selectedIngredients) #  list ['3', '2', '4']
+            # ingredients = ""
+            # for i in range(len(selectedIngredients)): 
+            #     ingredients += selectedIngredients[i]
+            #     if i < len(selectedIngredients)-1: 
+            #         ingredients += ","
+
+            # post_date = date.today()
+            # last_updated_date = date.today()
+
+            error = []
+            if len(title) == 0 and len(selectedIngredients) == 0: 
+                error.append("Please enter either a recipe title or select ingredients.")
+            
+            # if there are no error messages
+            if len(error) == 0: 
+                conn = dbi.connect()
+                uid = helper.getUID(conn, username)
+                #we cannot store any user's searches because they do not have their personal databases
+                # searchResults = helper.searching(conn,title,ingredients,post_date,last_updated_date,uid)
+                searchResults = helper.searching(conn,title,selectedIngredients)
+                #if recipes were not found
+                if len(searchResults) < 1:
+                    error = ['No recipes matched your search.']
+                    return render_template('search.html', page_title="Search", user=username, error=error)
+                    # return redirect(url_for('update', oldtt=tt))
+                #if there are results then display them
+                else:
+                    results = 1
+                    return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList, results=results,searchResults=searchResults)
+
+            # if there are error messages
+            else: 
+                return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList) 
+    else:
+        # flash, cannot search for a recipe without being logged in, explained in above comments and to be discussed
+        error = ['Please log in to search for a recipe.']
+        return render_template('index.html', error=error)
+        
     return render_template('search.html')
 
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
     conn = dbi.connect()
+    if 'username' in session:
+        username = session.get('username')
     try:
         recipe, creator, ingredients = helper.recipe_lookup(conn, recipe_id)
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
-    return render_template('recipe.html', recipe = recipe, creator = creator, ingredients = ingredients)
+    return render_template('recipe.html', page_title="Recipe", user=username, recipe = recipe, creator = creator, ingredients = ingredients)
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
