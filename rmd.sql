@@ -1,4 +1,4 @@
-use ac5_db;
+use cw1_db;
 
 drop table if exists uses;
 drop table if exists ingredient;
