@@ -270,7 +270,7 @@ def logout():
 @app.before_first_request
 def init_db():
     dbi.cache_cnf()
-    db_to_use = 'iho_db' 
+    db_to_use = 'recipes_db' 
     dbi.use(db_to_use)
     print('will connect to {}'.format(db_to_use))
 

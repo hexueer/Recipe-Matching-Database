@@ -1,4 +1,4 @@
-use iho_db;
+use recipes_db;
 
 drop table if exists uses;
 drop table if exists ingredient;
