@@ -9,6 +9,7 @@
             <div class = "col-8">
                 <p>{{creator.name}}</p>
                 <h2>{{recipe.title}}</h2>
+                <p>Cooking Time: {{recipe.cook_time}} Minutes</p>
                 {% if filename %}
                     <img id = "recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}" alt="Recipe Image Was Not Found" width="104" height="142">
                 {% endif %}

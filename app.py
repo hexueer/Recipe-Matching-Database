@@ -49,6 +49,7 @@ def insert():
         else: 
             title = request.form['recipe-title'] 
             instructions = request.form['recipe-instructions']
+            cook_time = request.form['recipe-time']
             selectedTagList = request.form.getlist('recipe-tags')
             tags = ""
             for i in range(len(selectedTagList)): 
@@ -93,7 +94,7 @@ def insert():
                 conn = dbi.connect()
                 uid = session['uid']
                 # this query will return rid, if successful
-                added = helper.insert_recipe(conn,title,filename,instructions,tags,post_date,last_updated_date,uid,amounts)
+                added = helper.insert_recipe(conn,title,filename,cook_time,instructions,tags,post_date,last_updated_date,uid,amounts)
                 
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added != "Error uploading recipe.":
