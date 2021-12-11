@@ -145,7 +145,6 @@ def search():
             else:
                 return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, searchResults=searchResults)       
 
-
     #list of user selected ingredients
     selectedIngredients = request.form.getlist('recipe-ingredients')
 

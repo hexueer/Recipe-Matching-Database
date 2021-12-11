@@ -58,9 +58,6 @@ create table uses (
     INDEX (iid),
     foreign key (rid) references recipe(rid)
         on update restrict 
-        on delete restrict,
-    foreign key (iid) references ingredient(iid)
-        on update restrict 
         on delete restrict
 )
 ENGINE = InnoDB;

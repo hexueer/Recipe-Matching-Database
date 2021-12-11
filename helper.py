@@ -15,30 +15,30 @@ def insert_recipe(conn,title,imagepath,cook_time,instructions,tags,post_date,las
        database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
-    try:
-        # insert the recipe into recipe
+    # try:
+    # insert the recipe into recipe
+    curs.execute('''
+        insert into recipe(title,image_path,cook_time,instructions,tag,post_date,last_updated_date,uid)
+        values (%s, %s, %s, %s, %s, %s, %s, %s)''', 
+                [title,imagepath,cook_time,instructions,tags,post_date,last_updated_date,uid]) 
+    conn.commit()
+    curs.execute('select last_insert_id()')
+    rid = curs.fetchone()
+    print(rid)
+    # insert the amounts into uses
+    for a in amounts:
+        curs = dbi.dict_cursor(conn)
         curs.execute('''
-            insert into recipe(title,image_path,cook_time,instructions,tag,post_date,last_updated_date,uid)
-            values (%s, %s, %s, %s, %s, %s, %s, %s)''', 
-                    [title,imagepath,cook_time,instructions,tags,post_date,last_updated_date,uid]) 
+            insert into uses(rid, iid, amount, measurement_unit)
+            values (%s, %s, %s, %s)''', 
+                    [rid['last_insert_id()'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
         conn.commit()
-        curs.execute('select last_insert_id()')
-        rid = curs.fetchone()
-
-        # insert the amounts into uses
-        for a in amounts:
-            curs = dbi.dict_cursor(conn)
-            curs.execute('''
-                insert into uses(rid, iid, amount, measurement_unit)
-                values (%s, %s, %s, %s)''', 
-                        [rid['rid'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
-            conn.commit()
-        curs.close()
-        return rid['rid']
-    except: 
-        curs.close()
-        error = "Error uploading recipe."
-        return error
+    curs.close()
+    return rid['last_insert_id()']
+    # except: 
+    #     curs.close()
+    #     error = "Error uploading recipe."
+    #     return error
 
 def check_title(conn, title): 
     '''selects titles from recipe like given title parameter
