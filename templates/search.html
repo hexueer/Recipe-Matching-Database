@@ -44,7 +44,7 @@
                             <p>Search Results </p>
                             <p class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
                                 {% for searchResult in searchResults %}
-                                <li><a href="../recipe/{{searchResult.rid}}" value="{{ searchResult.rid }}">{{ searchResult.title }}</li>
+                                <li><a href="url_for('recipe', recipe_id = {{searchResult.rid}})" value="{{ searchResult.rid }}">{{ searchResult.title }}</li>
                                 {% endfor %}
                             </p>
                         </td>
