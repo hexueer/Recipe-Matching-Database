@@ -11,22 +11,24 @@ def getUID(conn, username):
     return curs.fetchone()['uid']
 
 # insert recipe
-def insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,uid,amounts): 
+def insert_recipe(conn,title,imagepath,instructions,tags,post_date,last_updated_date,uid,amounts): 
     '''inserts a recipe into the recipes table in my personal
        database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
     try:
+        # insert the recipe into recipe
         curs.execute('''
-            insert into recipe(title,instructions,tag,post_date,last_updated_date,uid)
-            values (%s, %s, %s, %s, %s, %s)''', 
-                    [title,instructions,tags,post_date,last_updated_date,uid]) 
+            insert into recipe(title,image_path,instructions,tag,post_date,last_updated_date,uid)
+            values (%s, %s, %s, %s, %s, %s, %s)''', 
+                    [title,imagepath,instructions,tags,post_date,last_updated_date,uid]) 
         conn.commit()
         curs.execute('''
             select rid from recipe 
             order by rid desc''')
         rid = curs.fetchone()
 
+        # insert the amounts into uses
         for a in amounts:
             curs = dbi.dict_cursor(conn)
             curs.execute('''
@@ -68,7 +70,7 @@ def get_ingredients(conn):
         order by name''')
     return curs.fetchall()
 
-# geet recipe with title
+# get recipe with title
 def get_recipe(conn,title): 
     '''Returns recipe data from recipes using 
        provided recipe title.

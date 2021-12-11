@@ -8,7 +8,7 @@
     <div class="row">
         <div class="col-2"></div>
         <div class="col-8">
-            <form method="post" action="{{url_for('insert')}}">
+            <form method="post" action="{{url_for('insert')}}" enctype="multipart/form-data">
                 <input type="hidden" name="form-name" value="form1">
                 <fieldset>
                     <legend>Recipe Data</legend>
@@ -17,6 +17,10 @@
                             <tr>
                                 <td><label for="recipe-title">Recipe Title: </label></td>
                                 <td><input id="recipe-title" type="text" name="recipe-title"></td>
+                            </tr>
+                            <tr>
+                                <label for="recipe-image">Upload an Image:</label>
+                                <input type="file" id="recipe-image" name="recipe-image">
                             </tr>
                             <tr>
                                 <td><label for="recipe-tags">Tags: </label></td>
