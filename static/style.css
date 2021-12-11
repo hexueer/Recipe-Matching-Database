@@ -149,7 +149,6 @@ input {
     padding: 5px;
     border-bottom-color: var(--color-dark);
     border-right-color: var(--color-dark);
-    width: 200px;
 }
 
 input:focus {
@@ -312,10 +311,6 @@ textarea {
 h2 {
     font-weight: bold;
     font-size: 50px;
-}
-
-#recipe-image {
-    padding-bottom: 30px;
 }
 
 .description {
