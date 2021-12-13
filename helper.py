@@ -149,10 +149,37 @@ def get_recipe_ingredients(conn, rid):
     
 
 # update recipe
-
-# search recipe
+def update_recipe(conn, rid):
+    '''Updates a row with new values (may be equivalent) for each attribute 
+    in the Recipe table for a specific rid'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''update movie set rid=%s
+                    where rid=%s ''',
+                    [rid])
+    conn.commit()
 
 # delete recipe
+def delete_recipe(conn, rid):
+    '''Deletes a recipe from the Recipe table given a specific rid value'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''delete from recipe where rid = %s''',
+                    [rid])
+    conn.commit()
+
+def confirmation_required(desc_fn):
+    def inner(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            if request.args.get('confirm') != '1':
+                desc = desc_fn()
+                return redirect(url_for('confirm', 
+                    desc=desc, action_url=quote(request.url)))
+            return f(*args, **kwargs)
+        return wrapper
+    return inner
+
+def you_sure():
+    return "Are you sure?"
 
 # ensure valid login
 def validate_login(conn, username):

@@ -31,6 +31,7 @@ def index():
     username = session.get('username','')
     return render_template('index.html', page_title="RMD", user=username)
 
+@helper.confirmation_required(helper.you_sure)
 @app.route('/insert/', methods=['GET', 'POST'])
 def insert():
     # logged in?
@@ -104,7 +105,14 @@ def update(rid):
     # logged in?
     if 'username' in session:
         username = session.get('username')
-        # update code
+        # update recipe code
+        if request.args['submit'] == 'update':
+            # render insert form with fields filled in
+            pass
+        # delete recipe code
+        elif request.args['submit'] == 'delete':
+            # flash confirmation and prompt for button resubmission
+            return redirect(url_for('recipe', recipe_id = rid))
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to update a recipe.']
@@ -175,7 +183,13 @@ def recipe(recipe_id):
     except:
         return render_template('error.html')
     # tags = recipe.tag.split(",")
-    return render_template('recipe.html', page_title="Recipe", user=username, recipe = recipe, creator = creator, ingredients = ingredients)
+    return render_template('recipe.html', 
+                            page_title="Recipe", 
+                            user=username, 
+                            recipe = recipe, 
+                            creator = creator, 
+                            ingredients = ingredients, 
+                            recipe_id = recipe_id)
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
