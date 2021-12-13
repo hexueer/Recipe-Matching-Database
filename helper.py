@@ -1,8 +1,8 @@
 import cs304dbi as dbi
 
-# get uid by username
 def getUID(conn, username):
-    '''Takes a username and returns the matching uid in the USER table'''
+    '''Takes a username and returns the matching uid in 
+       the USER table'''
     curs = dbi.dict_cursor(conn)
     curs.execute('''SELECT uid
                     FROM user
@@ -10,40 +10,39 @@ def getUID(conn, username):
                     [username])
     return curs.fetchone()['uid']
 
-# insert recipe
-def insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,uid,amounts): 
+def insert_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts): 
     '''inserts a recipe into the recipes table in my personal
        database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
-    try:
+    # try:
+    # insert the recipe into recipe
+    curs.execute('''
+        insert into recipe(title,image_path,cook_time,servings,instructions,tag,post_date,last_updated_date,uid)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
+                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
+    conn.commit()
+    curs.execute('select last_insert_id()')
+    rid = curs.fetchone()
+    # insert the amounts into uses
+    for a in amounts:
+        curs = dbi.dict_cursor(conn)
         curs.execute('''
-            insert into recipe(title,instructions,tag,post_date,last_updated_date,uid)
-            values (%s, %s, %s, %s, %s, %s)''', 
-                    [title,instructions,tags,post_date,last_updated_date,uid]) 
+            insert into uses(rid, iid, amount, measurement_unit)
+            values (%s, %s, %s, %s)''', 
+                    [rid['last_insert_id()'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
         conn.commit()
-        curs.execute('''
-            select rid from recipe 
-            order by rid desc''')
-        rid = curs.fetchone()
-
-        for a in amounts:
-            curs = dbi.dict_cursor(conn)
-            curs.execute('''
-                insert into uses(rid, iid, amount, measurement_unit)
-                values (%s, %s, %s, %s)''', 
-                        [rid['rid'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
-            conn.commit()
-        curs.close()
-        return "success"
-    except: 
-        curs.close()
-        error = "Error uploading recipe."
-        return error
+    curs.close()
+    return rid['last_insert_id()']
+    # except: 
+    #     curs.close()
+    #     error = "Error uploading recipe."
+    #     return error
 
 def check_title(conn, title): 
     '''selects titles from recipe like given title parameter
-       returns True if no matches found, false if another recipe already exists. 
+       returns True if no matches found, false if another 
+       recipe already exists. 
     ''' 
     curs = dbi.dict_cursor(conn)
     try:
@@ -68,27 +67,6 @@ def get_ingredients(conn):
         order by name''')
     return curs.fetchall()
 
-# geet recipe with title
-def get_recipe(conn,title): 
-    '''Returns recipe data from recipes using 
-       provided recipe title.
-    ''' 
-    curs = dbi.dict_cursor(conn)
-    curs.execute('''
-        select * 
-        from recipe  
-        where title = %s''',
-                 [title])
-    # fetch the first (and only) value
-    recipe = curs.fetchone()
-
-    # if no recipe is found, just return an empty (None) object
-    if recipe == None: 
-        return None
-    
-    return recipe
-
-# get recipe with rid
 def recipe_lookup(conn, rid):
     '''Returns recipe data from given rid parameter.
     ''' 
@@ -98,7 +76,7 @@ def recipe_lookup(conn, rid):
     recipe = curs.fetchone()
 
     # if recipe does not exist
-    if len(recipe.keys()) == 0: 
+    if recipe is None: 
         return (["Recipe does not exist"], "Error", "Error")
 
     curs.execute('''select user.name from user 
@@ -108,10 +86,9 @@ def recipe_lookup(conn, rid):
     #get ingredients with name, amount and measurement_unit
     return (recipe, user_name)
 
-# search by ingredients
 def search_ingredients(conn,ingredients):
-    '''finds if user search input matches recipes in recipe database 
-     using given params. 
+    '''Searches by ingredients: finds if user search input 
+       matches recipes in recipe database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
@@ -122,10 +99,9 @@ def search_ingredients(conn,ingredients):
                     ,ingredients)
     return curs.fetchall()
 
-# search by title
 def search_titles(conn,title):
-    '''Returns data of recipes with a title similar to the 
-       provided query, as a dictionary.
+    '''Searches by title: returns data of recipes with a 
+       title similar to the provided query, as a dictionary.
     '''
     curs = dbi.dict_cursor(conn)
     title = "%" + title + "%"
@@ -181,9 +157,10 @@ def confirmation_required(desc_fn):
 def you_sure():
     return "Are you sure?"
 
-# ensure valid login
 def validate_login(conn, username):
-    '''Takes a dbi connection and a username and checks if that username exists in the USER table, returns the matching row'''
+    '''Ensures valid login - takes a dbi connection and a 
+       username and checks if that username exists in the 
+       USER table, returns the matching row'''
     curs = dbi.dict_cursor(conn)
     curs.execute('''SELECT uid,hashed
                     FROM user

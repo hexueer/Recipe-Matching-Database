@@ -9,7 +9,23 @@
             <div class = "col-8">
                 <p>{{creator.name}}</p>
                 <h2>{{recipe.title}}</h2>
-                <img id = "recipe-image" src= {{recipe.image_path}} alt="Recipe Image Was Not Found" width="104" height="142">
+                <p>Cooking Time: {{recipe.cook_time}} Minutes</p>
+                <div class = "tags">
+                    <p>Tags: {{recipe.tag}}</p>
+
+                    <!-- <ul>
+                        {% for tag in tags %}
+                        <li>{{tag}}</li>
+                        {% endfor %}
+                    </ul> -->
+                </div>
+                <p>
+                    <label for="recipe-servings">Servings: </label>
+                    <input id="recipe-servings" type="text" name="recipe-servings" value="{{recipe.servings}}"></td>
+                </p>
+                {% if filename %}
+                    <img id = "recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}" alt="Recipe Image Was Not Found" style="max-height:300px; margin-bottom:1em;">
+                {% endif %}
                 <div class = "description">
                     <div class = "ingredients">
                             <p>Ingredients:</p>
@@ -23,27 +39,15 @@
                         <p>Instructions:</p>
                         <p id = "inst">{{recipe.instructions}}</p>
                     </div>
-                    <!-- <div class = "tags">
-                        <p>Tags: </p>
-                        <p id = "inst">{{recipe.tag}}</p>
-                        <ul>
-                            {% for tag in recipe.tag %}
-                            <li>{{tag}}</li>
-                            {% endfor %}
-                        </ul>
-                    </div> -->
                 </div>
-                <!-- <div class = "dates">
-                    <p>Date Posted: </p>
-                    <p>Latest Update: </p>
-                </div> -->
+            </div>
+            <div class="row">
+                <div class = "dates">
+                    <p>Date Posted: {{recipe.post_date}}</p>
+                    <p>Latest Update: {{recipe.last_updated_date}}</p>
+                </div>
             </div>
         </div>
-        <form method=GET action="{{url_for('update', rid = recipe_id)}}"></form>
-            <input type="submit" name="submit" value="update">
-            <input type="submit" name="submit" value="delete">
-            <input type="hidden" name="confirm" value="1">
-        </form>
     </div>
 </div>
 

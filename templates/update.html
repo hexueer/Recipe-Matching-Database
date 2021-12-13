@@ -8,7 +8,7 @@
     <div class="row">
         <div class="col-2"></div>
         <div class="col-8">
-            <form method="post" action="{{url_for('insert')}}" enctype="multipart/form-data">
+            <form method="post" action="url_for('update', rid='{{rid}}')" enctype="multipart/form-data">
                 <input type="hidden" name="form-name" value="form1">
                 <fieldset>
                     <legend>Recipe Data</legend>
@@ -88,7 +88,9 @@
                     <div class="col-2"></div>
                     <div class="col-8 justify-content-center">
                         <p class="pbtn">
-                            <input type="submit" value="Add Recipe">
+                            <input type="submit" name="submit" value="update">
+                            <input type="submit" name="submit" value="delete">
+                            <input type="hidden" name="confirm" value="1">
                         </p>
                     </div>
                     <div class="col-2"></div>
@@ -113,5 +115,3 @@
 </script>
 
 {% endblock %}
-
-
