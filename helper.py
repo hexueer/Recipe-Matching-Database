@@ -10,7 +10,7 @@ def getUID(conn, username):
                     [username])
     return curs.fetchone()['uid']
 
-def insert_recipe(conn,title,imagepath,cook_time,instructions,tags,post_date,last_updated_date,uid,amounts): 
+def insert_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts): 
     '''inserts a recipe into the recipes table in my personal
        database using given params. 
     ''' 
@@ -18,13 +18,12 @@ def insert_recipe(conn,title,imagepath,cook_time,instructions,tags,post_date,las
     # try:
     # insert the recipe into recipe
     curs.execute('''
-        insert into recipe(title,image_path,cook_time,instructions,tag,post_date,last_updated_date,uid)
-        values (%s, %s, %s, %s, %s, %s, %s, %s)''', 
-                [title,imagepath,cook_time,instructions,tags,post_date,last_updated_date,uid]) 
+        insert into recipe(title,image_path,cook_time,servings,instructions,tag,post_date,last_updated_date,uid)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
+                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
     conn.commit()
     curs.execute('select last_insert_id()')
     rid = curs.fetchone()
-    print(rid)
     # insert the amounts into uses
     for a in amounts:
         curs = dbi.dict_cursor(conn)
