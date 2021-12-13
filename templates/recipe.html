@@ -2,26 +2,32 @@
 
 {% block main_content %}
 <h1>Recipe</h1>
-<div class = "recipe-detail">
-    <div class = container>
-        <div class= "row">
-            <div class = "col-2"></div>
-            <div class = "col-8">
+<div class="recipe-detail">
+    <div class=container>
+        <div class="row">
+            <div class="col-2"></div>
+            <div class="col-8">
                 <p>{{creator.name}}</p>
                 <h2>{{recipe.title}}</h2>
-                <img id = "recipe-image" src= {{recipe.image_path}} alt="Recipe Image Was Not Found" width="104" height="142">
-                <div class = "description">
-                    <div class = "ingredients">
-                            <p>Ingredients:</p>
-                            <ul>
-                                {% for ingredient in ingredients %}
-                                <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
-                                {% endfor %}
-                            </ul>
+                <img id="recipe-image" src={{recipe.image_path}} alt="Recipe Image Was Not Found" width="104"
+                    height="142">
+                <div class="description">
+                    <div class="ingredients">
+                        <p>Ingredients:</p>
+                        <ul>
+                            {% for ingredient in ingredients %}
+                            <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    <div class = "instructions">
+                    <div class="instructions">
                         <p>Instructions:</p>
-                        <p id = "inst">{{recipe.instructions}}</p>
+                        <ol type="1">
+                            {% for instruction in instructions %}
+                            <li>{{instruction}}</li>
+                            {% endfor %}
+                        </ol>
+                        <!-- <p id = "inst">{{recipe.instructions}}</p> -->
                     </div>
                     <!-- <div class = "tags">
                         <p>Tags: </p>

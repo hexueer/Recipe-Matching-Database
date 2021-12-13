@@ -342,3 +342,7 @@ h2 {
 #inst {
     text-transform: none;
 }
+
+.instruction-list {
+    list-style-type: none;
+}

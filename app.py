@@ -173,9 +173,34 @@ def recipe(recipe_id):
         recipe, creator = helper.recipe_lookup(conn, recipe_id)
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
     except:
-        return render_template('error.html')
+        error = ['Sorry, the recipe you are looking for is not in the database.']
+        return render_template('search.html', page_title="Search", user=username, error=error)
     # tags = recipe.tag.split(",")
-    return render_template('recipe.html', page_title="Recipe", user=username, recipe = recipe, creator = creator, ingredients = ingredients)
+    #print(recipe['instructions'])
+
+    instructions = recipe['instructions'].split('. ')
+
+    for instruction in instructions:
+        if (instruction.strip()).isdigit()  or instruction == '':
+            instructions.remove(instruction)
+    # print(instructions)
+    return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, recipe = recipe, creator = creator, ingredients = ingredients)
+
+@app.route('/profile/')
+def profile():
+    conn = dbi.connect()
+    if 'username' in session:
+        username = session.get('username')
+        # profile code
+
+
+
+
+    else:
+        # flash, cannot update recipe without being logged in
+        error = ['Please log in to access your profile page.']
+        return render_template('index.html', error=error)
+    
 
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
