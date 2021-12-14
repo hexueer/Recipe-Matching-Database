@@ -388,3 +388,7 @@ div.desc {
     text-align: center;
     bottom: 0px;
 }
+
+.search {
+    width: fit-content;
+}

@@ -147,96 +147,76 @@ def update(rid):
         # if post
         if request.method == 'POST':
             # update recipe
-            if request.form['submit'] == 'update':
-                title = request.form['recipe-title'] 
-                instructions = request.form['recipe-instructions']
-                cook_time = request.form['recipe-time']
-                servings = request.form['recipe-servings']
-                selectedTagList = request.form.getlist('recipe-tags')
-                tags = ""
-                for i in range(len(selectedTagList)): 
-                    tags += selectedTagList[i]
-                    if i < len(selectedTagList)-1: 
-                        tags += ", "
+            title = request.form['recipe-title'] 
+            instructions = request.form['recipe-instructions']
+            cook_time = request.form['recipe-time']
+            servings = request.form['recipe-servings']
+            selectedTagList = request.form.getlist('recipe-tags')
+            tags = ""
+            for i in range(len(selectedTagList)): 
+                tags += selectedTagList[i]
+                if i < len(selectedTagList)-1: 
+                    tags += ", "
 
-                try:
-                    image = request.files['recipe-image']
-                    ext = image.filename.split('.')[-1]
-                    filename = secure_filename('{}.{}'.format(title.replace(" ", ""), ext))
-                    pathname = os.path.join(app.config['UPLOADS'],filename)
-                    image.save(pathname)
-                except: 
-                    filename = None
+            try:
+                image = request.files['recipe-image']
+                ext = image.filename.split('.')[-1]
+                filename = secure_filename('{}.{}'.format(title.replace(" ", ""), ext))
+                pathname = os.path.join(app.config['UPLOADS'],filename)
+                image.save(pathname)
+            except: 
+                filename = None
 
-                amounts = {}
-                
-                i = 1
-                while ('ingredient' + str(i)) in request.form.keys():
-                    if request.form['ingredient' + str(i)] != "":  
-                        amounts[str(i)] = {}
-                        amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
-                        amounts[str(i)]['amount'] = request.form['amount' + str(i)]
-                        amounts[str(i)]['unit'] = request.form['unit' + str(i)]
-                        i += 1
-                    else: 
-                        break
-
-                last_updated_date = date.today()
-
-                error = []
-                # check for duplicated title
-                if not helper.check_title(conn, title, rid): 
-                    error.append("Sorry, this recipe title already exists. Please choose another.")
-                if len(title) == 0: 
-                    error.append("Please enter a recipe title.")
-                if len(instructions) == 0: 
-                    error.append("Please enter recipe instructions.")
-                if len(amounts) == 0: 
-                    error.append("Please enter at least one ingredient.")
-                
-                # if there are no error messages
-                if len(error) == 0: 
-                    conn = dbi.connect()
-                    uid = session['uid']
-
-                    # this query will return rid, if successful
-                    helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
-                    flash('Form submission successful.')
-
-                    # # delete old image
-                    # pathname = os.path.join(app.config['UPLOADS'],oldimage)
-                    # if os.path.exists(pathname):
-                    #     os.remove(pathname)
-                    # else:
-                    #     print("The file does not exist")
-
-                    return redirect(url_for('recipe', recipe_id = rid))
-                    
-                # if there are error messages
+            amounts = {}
+            
+            i = 1
+            while ('ingredient' + str(i)) in request.form.keys():
+                if request.form['ingredient' + str(i)] != "":  
+                    amounts[str(i)] = {}
+                    amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
+                    amounts[str(i)]['amount'] = request.form['amount' + str(i)]
+                    amounts[str(i)]['unit'] = request.form['unit' + str(i)]
+                    i += 1
                 else: 
-                    return render_template('update.html', 
-                                    page_title="Update", 
-                                    error=error,
-                                    user=username, 
-                                    rid=rid, 
-                                    recipe=recipe,
-                                    ingredients=ingredients, 
-                                    ingredientList=ingredientList, 
-                                    units=unitList, 
-                                    tags=tagList
-                                    )  
+                    break
 
-            # delete recipe
-            else:
-                # flash confirmation and prompt for button resubmission
-                deleted = helper.delete_recipe(conn, rid)
-                # returns -1 if deletion affected 0 rows
-                if deleted == -1:
-                    flash("Error deleting recipe. Try again.")
-                else:
-                    flash("Recipe {} deleted ToT".format(rid))
+            last_updated_date = date.today()
+
+            error = []
+            # check for duplicated title
+            if not helper.check_title(conn, title, rid): 
+                error.append("Sorry, this recipe title already exists. Please choose another.")
+            if len(title) == 0: 
+                error.append("Please enter a recipe title.")
+            if len(instructions) == 0: 
+                error.append("Please enter recipe instructions.")
+            if len(amounts) == 0: 
+                error.append("Please enter at least one ingredient.")
+            
+            # if there are no error messages
+            if len(error) == 0: 
+                conn = dbi.connect()
+                uid = session['uid']
+
+                # this query will return rid, if successful
+                helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
+                flash('Form submission successful.')
 
                 return redirect(url_for('recipe', recipe_id = rid))
+                
+            # if there are error messages
+            else: 
+                return render_template('update.html', 
+                                page_title="Update", 
+                                error=error,
+                                user=username, 
+                                rid=rid, 
+                                recipe=recipe,
+                                ingredients=ingredients, 
+                                ingredientList=ingredientList, 
+                                units=unitList, 
+                                tags=tagList
+                                )
 
         # if get
         else:
@@ -255,6 +235,38 @@ def update(rid):
         # flash, cannot update recipe without being logged in
         error = ['Please log in to update a recipe.']
         return render_template('index.html', error=error)
+
+@app.route('/delete/<int:rid>', methods=['POST'])
+def delete(rid):
+    # logged in?
+    if 'username' in session:
+        username = session.get('username')
+        uid = session.get('uid')
+        conn = dbi.connect()
+
+        # delete old image
+        oldimage = helper.get_recipe_image_path(conn, rid)
+        pathname = os.path.join(app.config['UPLOADS'],oldimage)
+        if os.path.exists(pathname):
+            os.remove(pathname)
+        else:
+            print("The file does not exist")
+
+        # flash confirmation and prompt for button resubmission
+        deleted = helper.delete_recipe(conn, rid)
+        # returns -1 if deletion affected 0 rows
+        if deleted == -1:
+            flash("Error deleting recipe. Try again.")
+        else:
+            flash("Recipe {} deleted ToT".format(rid))
+
+        return redirect(url_for('recipe', recipe_id = rid))
+
+    else:
+        # flash, cannot update recipe without being logged in
+        error = ['Please log in to delete a recipe.']
+        return render_template('index.html', error=error)
+        
 
 @app.route('/search/', methods=['GET', 'POST'])
 def search():
