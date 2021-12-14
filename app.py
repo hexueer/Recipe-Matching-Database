@@ -138,37 +138,38 @@ def search():
     if request.method == 'GET':
         return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList)
     else:
+        #title input
         title = request.form['recipe-title'] 
-        #we will search by title before ingredients
-        if len(title) != 0: 
-            searchResults = helper.search_titles(conn,title)
-            #if recipes were not found
-            if len(searchResults) < 1:
-                error = ['No recipes matched your search.']
-                return render_template('search.html', page_title="Search", user=username, error=error)
-            #if there are results then display them
-            else:
-                return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, searchResults=searchResults)       
+        print("TITLE REQUEST", title)
+        #list of user selected ingredients
+        selectedIngredients = request.form.getlist('recipe-ingredients')
+        print("INGREDIENT REQUEST", selectedIngredients)
 
-    #list of user selected ingredients
-    selectedIngredients = request.form.getlist('recipe-ingredients')
+        #Search by both title and ingredients
+        #set search results if title input exists
+        if len(title) > 0: 
+            searchResults = helper.search_titles(conn,title)
+            #set search results if selected ingredient input exists
+        if len(selectedIngredients) > 0:
+            searchResults = helper.search_ingredients(conn,selectedIngredients)
+            #set search results if both title and ingredients input exist
+        if len(title) > 0 and len(selectedIngredients) > 0:
+            #merging search results to avoid repetition
+            title_searchResults = helper.search_titles(conn,title)
+            ingredient_searchResults = helper.search_ingredients(conn,selectedIngredients)
+            searchResults = helper.search_title_ingredients(conn, title_searchResults,ingredient_searchResults)
+        #if recipes were not found
+        if len(searchResults) < 1:
+            error = ['No recipes matched your search.']
+            return render_template('search.html', page_title="Search", user=username, error=error,ingredients=ingredientList)
+        #if there are results then display them
+        else:
+            return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, searchResults=searchResults)       
 
     error = []
     if len(title) == 0 and len(selectedIngredients) == 0:
         error.append("Please enter either a recipe title or select ingredients.")
     
-    # if there are no error messages
-    if len(error) == 0:
-        conn = dbi.connect()
-        searchResults = helper.search_ingredients(conn,selectedIngredients)
-        #if recipes were not found
-        if len(searchResults) < 1:
-            error = ['No recipes matched your search.']
-            return render_template('search.html', page_title="Search", user=username, error=error)
-        #if there are results then display them
-        else:
-            return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList, searchResults=searchResults)
-
     # if there are error messages
     else:
         return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList)
@@ -315,4 +316,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',8768)
+    app.run('0.0.0.0',8266)
