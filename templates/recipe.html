@@ -2,11 +2,11 @@
 
 {% block main_content %}
 <h1>Recipe</h1>
-<div class = "recipe-detail">
-    <div class = container>
-        <div class= "row">
-            <div class = "col-2"></div>
-            <div class = "col-8">
+<div class="recipe-detail">
+    <div class=container>
+        <div class="row">
+            <div class="col-2"></div>
+            <div class="col-8">
                 <p>{{creator.name}}</p>
                 <h2>{{recipe.title}}</h2>
                 <p>Cooking Time: {{recipe.cook_time}} Minutes</p>
@@ -24,20 +24,26 @@
                     <input id="recipe-servings" type="text" name="recipe-servings" value="{{recipe.servings}}"></td>
                 </p>
                 {% if filename %}
-                    <img id = "recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}" alt="Recipe Image Was Not Found" style="max-height:300px; margin-bottom:1em;">
+                <img id="recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}"
+                    alt="Recipe Image Was Not Found" style="max-height:300px; margin-bottom:1em;">
                 {% endif %}
-                <div class = "description">
-                    <div class = "ingredients">
-                            <p>Ingredients:</p>
-                            <ul>
-                                {% for ingredient in ingredients %}
-                                <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
-                                {% endfor %}
-                            </ul>
+                <div class="description">
+                    <div class="ingredients">
+                        <p>Ingredients:</p>
+                        <ul>
+                            {% for ingredient in ingredients %}
+                            <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                    <div class = "instructions">
+                    <div class="instructions">
                         <p>Instructions:</p>
-                        <p id = "inst">{{recipe.instructions}}</p>
+                        <ol type="1">
+                            {% for instruction in instructions %}
+                            <li>{{instruction}}</li>
+                            {% endfor %}
+                        </ol>
+                        <!-- <p id = "inst">{{recipe.instructions}}</p> -->
                     </div>
                 </div>
             </div>

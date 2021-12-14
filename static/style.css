@@ -342,3 +342,36 @@ h2 {
 .buttons, form, input {
     display: inline;
 }
+.instruction-list {
+    list-style-type: none;
+}
+
+div.gallery {
+    margin: 5px;
+    border: 2px solid var(--color-focus);
+    border-radius: 0.5em;
+    float: left;
+    width: 250px;
+    height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* position: relative; */
+}
+
+div.gallery:hover {
+    border: 2px solid var(--color-header);
+    border-radius: 0.5em;
+}
+
+div.gallery img {
+    width: 100%;
+    height: auto;
+}
+  
+div.desc {
+    /* position: absolute; */
+    padding: 15px;
+    text-align: center;
+    bottom: 0px;
+}

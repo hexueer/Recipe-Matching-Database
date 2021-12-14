@@ -15,7 +15,6 @@
                     <table>
                         <tbody>
                             <tr>
-                                
                                 <td><label for="recipe-title">Search by Recipe Title: </label></td>
                                 <td><input id="recipe-title" type="text" name="recipe-title"></td>
                             </tr>
@@ -23,7 +22,8 @@
                                 <td><label for="recipe-ingredients">Search by Ingredients: </label></td>
                                 <td>
                                     <p>Select all the ingredients you have </p>
-                                    <select class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
+                                    <select class="form-select" multiple id="recipe-ingredients"
+                                        name="recipe-ingredients">
                                         {% for ingredient in ingredients %}
                                         <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
                                         {% endfor %}
@@ -41,10 +41,18 @@
                         </p>
                         {% if searchResults %}
                         <td>
-                            <p>Search Results </p>
+                            <p>Search Results</p>
                             <p class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
                                 {% for searchResult in searchResults %}
-                                <li><a href="../recipe/{{searchResult.rid}}" value="{{ searchResult.rid }}">{{ searchResult.title }}</li>
+                                <div class="gallery">
+                                    <a target="_blank" href="../recipe/{{searchResult.rid}}"
+                                        value="{{searchResult.rid}}">
+                                        <img src="{{url_for('pic', filename=searchResult['image_path'])}}"
+                                            alt="Recipe Image Not Found"
+                                            style="height:150px; width:250px; border-radius: 8px;padding-top: 2px;">
+                                        <div class="desc">{{searchResult.title}}</div>
+                                    </a>
+                                </div>
                                 {% endfor %}
                             </p>
                         </td>
