@@ -22,6 +22,7 @@ create table recipe (
     instructions text,
     cook_time varchar(4),
     image_path varchar(50),
+    servings int, 
     tag set('breakfast', 'lunch', 'dinner', 'snack', 'vegan', 
             'vegetarian', 'pescatarian', 'quick meals', 'bake', 
             'one-pan meal', 'stovetop', 'grill', 'dessert', 
@@ -53,7 +54,8 @@ create table uses (
                           'milliliter (mL)', 'liter (L)', 'gram (g)', 
                           'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
                           'whole', 'slice', 'each'), /* set of measurement options */
-    primary key (rid, iid),
+    /* no primary key, in case a user wants to insert 
+    multiple measurements of a single ingredient */
     INDEX (rid),
     INDEX (iid),
     foreign key (rid) references recipe(rid)
@@ -76,9 +78,12 @@ insert into ingredient(name) values ('basil');
 insert into ingredient(name) values ('mozzarella');
 insert into ingredient(name) values ('olive oil');
 
-insert into recipe(title, uid, image_path, cook_time, instructions, tag) values ('Caprese', 5, 'Caprese.jpg', '10', 
-'Gather the ingredients. Using a serrated knife, slice an Italian sub roll in half lengthwise. Drizzle the inside with Italian extra-virgin olive oil and balsamic glaze. Add basil and tomato to one side and sprinkle with salt and pepper. Top with fresh mozzarella and close sandwich. Eat now or wrap tightly to enjoy later.',
-'lunch, quick meals, vegetarian');
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Caprese', 5, 'Caprese.jpg', '10', 1,
+'Gather the ingredients. Using a serrated knife, slice an Italian sub roll in half lengthwise. Drizzle the inside with Italian 
+extra-virgin olive oil and balsamic glaze. Add basil and tomato to one side and sprinkle with salt and pepper. Top with fresh 
+mozzarella and close sandwich. Eat now or wrap tightly to enjoy later.',
+'lunch, quick meals, vegetarian', '2021-12-13', '2021-12-13');
 
 insert into uses(rid, iid, amount, measurement_unit) values (1,1,2,'whole');
 insert into uses(rid, iid, amount, measurement_unit) values (1,2,1,'whole');
@@ -96,9 +101,9 @@ insert into ingredient(name) values ('green scallion');
 insert into ingredient(name) values ('flour');
 insert into ingredient(name) values ('water');
 insert into ingredient(name) values ('oil');
-insert into recipe(title, uid, image_path, cook_time, instructions, tag) values ('Scallion Pancake', 4, 'ScallionPancake.jpg', '30', 
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) values ('Scallion Pancake', 4, 'ScallionPancake.jpg', '30', 2,
 "Slowly add the hot water to the flour and mix it at the same time. Mix until the hot water is fully absorbed. Slowly add the cold water and continue mixing. Dough flakes should form once all the water is added. Start to press everything together with your hand. You can add a bit more water if there's too much dry flour left. Or you can slightly add a bit more flour if the dough is very sticky. Once you've pressed all the dough flakes together, you should have little or no dry flour left. Knead about 5 mins until a tough dough is formed. Let rest for 20 mins, then knead for 1 minute to form a smooth dough. Make flour oil paste. Cut the dough into 6 pieces and work on the pieces one at a time. Use your hands to shape the dough into a rectangular shape. Roll the dough. The dough should form a very thin rectangle. Add the flour oil paste. Spread out the paste, leaving about 1” (2.5 cm) on both a long and a short end without the filling (your top and left). Add the green onion, concentrating most of it towards a long and short end with the filling. Gently roll up the dough, as tightly as possible. Press the air bubbles out of the dough strip. Further roll up the long dough strip. Tuck the end on the bottom. Gently press the tall pancake. Let rest and roll out the pancakes when you're ready to cook. Heat up a pan with a layer of oil on the bottom, add the pancake, and wiggle the pancake a few times so it won't stick. Let the pancake cook covered first. Flip the pancake and cook covered again. Then cook uncovered, until both sides of the pancake are browned.", 
-'breakfast, one-pan meal, quick meals, vegetarian');
+'breakfast, one-pan meal, quick meals, vegetarian', '2021-12-13', '2021-12-13');
 
 insert into uses(rid, iid, amount, measurement_unit) values (2,6,8,'whole');
 insert into uses(rid, iid, amount, measurement_unit) values (2,7,2,'cup (c)');
@@ -112,7 +117,13 @@ insert into ingredient (name) values ('minced garlic');
 insert into ingredient (name) values ('red onion');
 insert into ingredient (name) values ('parmesan cheese');
 insert into ingredient (name) values ('brown sugar');
-insert into recipe (title, uid, image_path, cook_time, instructions, tag) values ('Chicken Bruschetta', 3,  'ChickenBruschetta.jpg', '30', '1. Season chicken with Italian seasoning, garlic and salt. Heat oil in a grill pan or skillet, and sear chicken breasts over medium-high heat until browned on both sides and cooked through (about 6 minutes each side). Remove from pan; set aside and allow to rest. 2. Combine the tomatoes, red onion, basil, olive oil in a bowl. Season with salt. 3. For the balsamic glaze, combine sugar and vinegar in a small saucepan over high heat and bring to the boil. Reduce heat to low; allow to simmer for 5-8 minutes or until mixture has thickened. 4. Top each chicken breast with the tomato mixture and parmesan cheese; serve immediately.', 'lunch, dinner, stovetop');
+insert into recipe (title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Chicken Bruschetta', 3,  'ChickenBruschetta.jpg', '30', 4, '1. Season chicken with Italian seasoning, garlic and salt. 
+Heat oil in a grill pan or skillet, and sear chicken breasts over medium-high heat until browned on both sides and cooked through 
+(about 6 minutes each side). Remove from pan; set aside and allow to rest. 2. Combine the tomatoes, red onion, basil, olive oil in 
+a bowl. Season with salt. 3. For the balsamic glaze, combine sugar and vinegar in a small saucepan over high heat and bring to the 
+boil. Reduce heat to low; allow to simmer for 5-8 minutes or until mixture has thickened. 4. Top each chicken breast with the tomato 
+mixture and parmesan cheese; serve immediately.', 'lunch, dinner, stovetop', '2021-12-13', '2021-12-13');
  
 insert into uses(rid, iid, amount, measurement_unit) values (3,10,2,'whole');
 insert into uses(rid, iid, amount, measurement_unit) values (3,11,1,'tablespoon (tbsp)');
@@ -134,7 +145,14 @@ insert into ingredient(name) values ('frying oil');
 insert into ingredient(name) values ('butter');
 insert into ingredient(name) values ('pepper');
 
-Insert into recipe(title, uid, image_path, cook_time, instructions, tag) values ('Salt and Pepper Shrimp', 2, 'SaltAndPepperShrimp.jpg', '30', "1. Rinse and strain shrimp. You can also devein your shrimp. 2. Pat the shrimps dry with a paper towel. 3. Cut 2 jalapenos, mince 4 cloves of garlic and 2 green onions. Set them aside. 4. In a large mixing bowl, coat the shrimps in 2 cups of flour. 5. Heat oil in a pot to 375F. If you don't have a thermometer, you can check the temperature by inserting a wooden chopstick into the oil. If bubbles rise, then your oil is ready. 6. Fry the shrimps for 1.5 - 2 minutes depending on your preferred crunchiness. 7. Melt 2 tbsp of butter in a hot pan (can also use oil if butter is unavailable). 8. Add the jalapenos, garlic and green onions into the pot and cook till they are slightly brown. 9. Add your tsp of salt and pepper. 10. Add your shrimp and mix everything. 11. That's all, enjoy!", 'dinner');
+Insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Salt and Pepper Shrimp', 2, 'SaltAndPepperShrimp.jpg', 4, '30', "1. Rinse and strain shrimp. You can also devein your shrimp. 
+2. Pat the shrimps dry with a paper towel. 3. Cut 2 jalapenos, mince 4 cloves of garlic and 2 green onions. Set them aside. 
+4. In a large mixing bowl, coat the shrimps in 2 cups of flour. 5. Heat oil in a pot to 375F. If you don't have a thermometer, 
+you can check the temperature by inserting a wooden chopstick into the oil. If bubbles rise, then your oil is ready. 6. Fry the 
+shrimps for 1.5 - 2 minutes depending on your preferred crunchiness. 7. Melt 2 tbsp of butter in a hot pan (can also use oil if 
+butter is unavailable). 8. Add the jalapenos, garlic and green onions into the pot and cook till they are slightly brown. 9. Add 
+your tsp of salt and pepper. 10. Add your shrimp and mix everything. 11. That's all, enjoy!", 'dinner', '2021-12-13', '2021-12-13');
 
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 17, 1.5, 'pound (lb)');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 18, 2, 'piece');
@@ -151,7 +169,10 @@ insert into ingredient(name) values ('canned tuna');
 insert into ingredient(name) values ('celery');
 insert into ingredient(name) values ('cranberries');
 
-insert into recipe(title, uid, image_path, cook_time, instructions, tag) values ('Tuna Melt', 1, 'TunaMelt.jpg', '10', 'Put bread in toaster. Chop celery. Combine canned tuna, celery, cranberries, pepper, and salt in a bowl. Mix until everything is incorporated. Place mixture on toasted bread. Top with mozzarella cheese. Bake in oven for 5-10 minutes or until cheese is melted.', 'lunch, pescatarian, quick meals, bake');
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Tuna Melt', 1, 'TunaMelt.jpg', '10', 1, 'Put bread in toaster. Chop celery. Combine canned tuna, celery, cranberries, 
+pepper, and salt in a bowl. Mix until everything is incorporated. Place mixture on toasted bread. Top with mozzarella cheese. 
+Bake in oven for 5-10 minutes or until cheese is melted.', 'lunch, pescatarian, quick meals, bake', '2021-12-13', '2021-12-13');
 
 insert into uses(rid, iid, amount, measurement_unit) values (5,25,1, 'cup (c)'); 
 insert into uses(rid, iid, amount, measurement_unit) values (5,26,1,'whole'); 

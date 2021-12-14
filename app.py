@@ -50,12 +50,13 @@ def insert():
             title = request.form['recipe-title'] 
             instructions = request.form['recipe-instructions']
             cook_time = request.form['recipe-time']
+            servings = request.form['recipe-servings']
             selectedTagList = request.form.getlist('recipe-tags')
             tags = ""
             for i in range(len(selectedTagList)): 
                 tags += selectedTagList[i]
                 if i < len(selectedTagList)-1: 
-                    tags += ","
+                    tags += ", "
 
             try:
                 image = request.files['recipe-image']
@@ -67,13 +68,17 @@ def insert():
                 filename = None
 
             amounts = {}
-            for i in range(1, 6): 
-                i = str(i)
-                if request.form['ingredient' + i] != "": 
-                    amounts[i] = {}
-                    amounts[i]['ingredient'] = request.form['ingredient' + i]
-                    amounts[i]['amount'] = request.form['amount' + i]
-                    amounts[i]['unit'] = request.form['unit' + i]
+            
+            i = 1
+            while ('ingredient' + str(i)) in request.form.keys():
+                if request.form['ingredient' + str(i)] != "":  
+                    amounts[str(i)] = {}
+                    amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
+                    amounts[str(i)]['amount'] = request.form['amount' + str(i)]
+                    amounts[str(i)]['unit'] = request.form['unit' + str(i)]
+                    i += 1
+                else: 
+                    break
 
             post_date = date.today()
             last_updated_date = date.today()
@@ -94,7 +99,7 @@ def insert():
                 conn = dbi.connect()
                 uid = session['uid']
                 # this query will return rid, if successful
-                added = helper.insert_recipe(conn,title,filename,cook_time,instructions,tags,post_date,last_updated_date,uid,amounts)
+                added = helper.insert_recipe(conn,title,filename,cook_time,int(servings),instructions,tags,post_date,last_updated_date,uid,amounts)
                 
                 # if the python/sql insert function was successful, thus returning a string 'success'
                 if added != "Error uploading recipe.":
@@ -310,4 +315,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',port)
+    app.run('0.0.0.0',8768)
