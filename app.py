@@ -334,7 +334,7 @@ def profile():
         username = session.get('username')
         recipes = helper.get_user_recipes(conn, username)
         # profile code
-        return render_template('profile.html', user = username, recipes = recipes)
+        return render_template('profile.html', user = username, recipes = recipes, page_title = "Profile")
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to access your profile page.']
