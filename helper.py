@@ -92,7 +92,7 @@ def search_ingredients(conn,ingredients):
     ''' 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
-    curs.execute('''select distinct uses.rid, recipe.title
+    curs.execute('''select distinct uses.rid, recipe.image_path, recipe.title
                     from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''

@@ -344,21 +344,26 @@ h2 {
 
 div.gallery {
     margin: 5px;
-    border: 1px solid #ccc;
+    border: 2px solid var(--color-focus);
+    border-radius: 0.5em;
     float: left;
     width: 250px;
     height: 200px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     /* position: relative; */
 }
 
 div.gallery:hover {
-    border: 1px solid #777;
+    border: 2px solid var(--color-header);
+    border-radius: 0.5em;
 }
 
 div.gallery img {
     width: 100%;
     height: auto;
-  }
+}
   
 div.desc {
     /* position: absolute; */
