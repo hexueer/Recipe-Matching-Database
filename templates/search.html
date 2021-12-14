@@ -8,7 +8,7 @@
     <div class="row">
         <div class="col-2"></div>
         <div class="col-8">
-            <form method="post" action="{{url_for('search')}}">
+            <form method="post" action="{{url_for('search')}}" >
                 <input type="hidden" name="form-name" value="form1">
                 <fieldset>
                     <legend>Search</legend>
@@ -22,13 +22,14 @@
                                 <td><label for="recipe-ingredients">Search by Ingredients: </label></td>
                                 <td>
                                     <p>Enter all the ingredients you have </p>
-                                    <form autocomplete="off" action="/action_page.php">
+                                    <form autocomplete="off" action="/action_page.php" >
                                         <div class="autocomplete" style="width:300px;">
-                                          <input id="myInput" name="recipe-ingredients" type="text" name="myCountry" placeholder="Ingredient">
+                                          <!-- <input id="myInput"  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients" > -->
+                                          <input  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients" >
                                         </div>
                                         <!-- <input type="submit"> -->
                                       </form>
-                                    <div id="user_input"></div>
+                                    <div id="user_input" ></div>
                                     <!-- <p>Select all the ingredients you have </p>
                                     <select class="form-select" multiple id="recipe-ingredients"
                                         name="recipe-ingredients">
@@ -127,7 +128,7 @@
                     var element = document.getElementById("user_input");
                     element.appendChild(tag);
 
-                    document.getElementById('myInput').value = "";
+                    document.getElementById('recipe-ingredients').value = "";
                 });
                 a.appendChild(b);
                 }
@@ -190,7 +191,7 @@
         closeAllLists(e.target);
     });
     }
-    autocomplete(document.getElementById("myInput"), countries);
+    autocomplete(document.getElementById("recipe-ingredients"), countries);
 
 </script>
 {% endblock %}
