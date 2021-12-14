@@ -9,8 +9,11 @@
             <div class="col-8">
                 <p>{{creator.name}}</p>
                 <h2>{{recipe.title}}</h2>
-                <img id="recipe-image" src={{recipe.image_path}} alt="Recipe Image Was Not Found" width="104"
-                    height="142">
+                <p>Cooking Time: {{recipe.cook_time}} Minutes</p>
+                {% if filename %}
+                <img id="recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}"
+                    alt="Recipe Image Was Not Found" style="max-height:300px; margin-bottom:1em;">
+                {% endif %}
                 <div class="description">
                     <div class="ingredients">
                         <p>Ingredients:</p>

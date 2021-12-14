@@ -1,19 +1,14 @@
-## REMEMBER TO CHANGE THE DATABASE NAME BEFORE YOU TEST
-
 from flask import (Flask, render_template, make_response, url_for, request,
                    redirect, flash, session, send_from_directory, jsonify)
 from werkzeug.utils import secure_filename
 app = Flask(__name__)
 
-# one or the other of these. Defaults to MySQL (PyMySQL) change comment
-# characters to switch to SQLite
-
 import cs304dbi as dbi
-# import cs304dbi_sqlite3 as dbi
 
 import random
 import helper
 import bcrypt
+import os
 from datetime import date
 
 app.secret_key = 'your secret here'
@@ -26,6 +21,10 @@ app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
 # This gets us better error messages for certain common request errors
 app.config['TRAP_BAD_REQUEST_ERRORS'] = True
 
+# new for file upload
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
+
 @app.route('/')
 def index():
     username = session.get('username','')
@@ -34,7 +33,11 @@ def index():
 @app.route('/insert/', methods=['GET', 'POST'])
 def insert():
     # logged in?
-    if 'username' in session:
+    if 'username' not in session:
+        # flash, cannot insert recipe without being logged in
+        error = ['Please log in to insert a recipe.']
+        return render_template('index.html', error=error)
+    else: 
         username = session.get('username')
         conn = dbi.connect()
         ingredientList = helper.get_ingredients(conn)
@@ -46,12 +49,22 @@ def insert():
         else: 
             title = request.form['recipe-title'] 
             instructions = request.form['recipe-instructions']
+            cook_time = request.form['recipe-time']
             selectedTagList = request.form.getlist('recipe-tags')
             tags = ""
             for i in range(len(selectedTagList)): 
                 tags += selectedTagList[i]
                 if i < len(selectedTagList)-1: 
                     tags += ","
+
+            try:
+                image = request.files['recipe-image']
+                ext = image.filename.split('.')[-1]
+                filename = secure_filename('{}.{}'.format(title.replace(" ", ""), ext))
+                pathname = os.path.join(app.config['UPLOADS'],filename)
+                image.save(pathname)
+            except: 
+                filename = None
 
             amounts = {}
             for i in range(1, 6): 
@@ -79,45 +92,43 @@ def insert():
             # if there are no error messages
             if len(error) == 0: 
                 conn = dbi.connect()
-                uid = helper.getUID(conn, username)
-                added = helper.insert_recipe(conn,title,instructions,tags,post_date,last_updated_date,uid,amounts)
+                uid = session['uid']
+                # this query will return rid, if successful
+                added = helper.insert_recipe(conn,title,filename,cook_time,instructions,tags,post_date,last_updated_date,uid,amounts)
+                
                 # if the python/sql insert function was successful, thus returning a string 'success'
-                if added == "success":
+                if added != "Error uploading recipe.":
                     flash('Form submission successful.')
-                    recipe = helper.get_recipe(conn, title)
-                    #rid = helper.recipe_lookup(conn, recipe['rid'])
-                    return redirect(url_for('recipe', recipe_id = recipe['rid']))
-                    # return redirect(url_for('update', rid=tt))
+                    return redirect(url_for('recipe', recipe_id = added))
                 else: #probably a duplicate error
                     error.append(added)
                     return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
             # if there are error messages
             else: 
-                return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList) 
-    else:
-        # flash, cannot insert recipe without being logged in
-        error = ['Please log in to insert a recipe.']
-        return render_template('index.html', error=error)
+                return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)      
+
+@app.route('/pic/<filename>')
+def pic(filename):
+    print(filename)
+    if filename == None: 
+        return "No image found"
+    return send_from_directory(app.config['UPLOADS'],filename)
 
 @app.route('/update/<int:rid>', methods=['GET', 'POST'])
 def update(rid):
     # logged in?
-    if 'username' in session:
-        username = session.get('username')
-        # update code
-    else:
+    if 'username' not in session:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to update a recipe.']
         return render_template('index.html', error=error)
+    else: 
+        username = session.get('username')
+        # update code
 
 @app.route('/search/', methods=['GET', 'POST'])
 def search():
     username = session.get('username')
     conn = dbi.connect()
-    #the get_ingredients function uses conn which means we need to be
-    #connected to the database by being logged in in order to access
-    #the ingredients, which is why a user must be logged in to search for
-    #a recipe versus what we initially planned
     ingredientList = helper.get_ingredients(conn)
     if request.method == 'GET':
         return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList)
@@ -132,9 +143,7 @@ def search():
                 return render_template('search.html', page_title="Search", user=username, error=error)
             #if there are results then display them
             else:
-                results = 1
-                return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, results=results,searchResults=searchResults)       
-
+                return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, searchResults=searchResults)       
 
     #list of user selected ingredients
     selectedIngredients = request.form.getlist('recipe-ingredients')
@@ -146,7 +155,6 @@ def search():
     # if there are no error messages
     if len(error) == 0:
         conn = dbi.connect()
-        #we cannot store any user's searches because they do not have their personal databases
         searchResults = helper.search_ingredients(conn,selectedIngredients)
         #if recipes were not found
         if len(searchResults) < 1:
@@ -154,8 +162,7 @@ def search():
             return render_template('search.html', page_title="Search", user=username, error=error)
         #if there are results then display them
         else:
-            results = 1
-            return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList, results=results,searchResults=searchResults)
+            return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList, searchResults=searchResults)
 
     # if there are error messages
     else:
@@ -163,12 +170,10 @@ def search():
     
     return render_template('search.html')
 
-
-
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
     conn = dbi.connect()
-    username = session.get('username') if 'username' in session else None
+    username = session.get('username')
     try:
         recipe, creator = helper.recipe_lookup(conn, recipe_id)
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
@@ -184,24 +189,21 @@ def recipe(recipe_id):
         if (instruction.strip()).isdigit()  or instruction == '':
             instructions.remove(instruction)
     # print(instructions)
-    return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, recipe = recipe, creator = creator, ingredients = ingredients)
+    return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, recipe = recipe, filename=recipe['image_path'], creator = creator, ingredients = ingredients)
 
 @app.route('/profile/')
 def profile():
     conn = dbi.connect()
     if 'username' in session:
         username = session.get('username')
+        recipes = helper.get_user_recipes(conn, username)
         # profile code
-
-
-
-
+        return render_template('profile.html', user = username, recipes = recipes)
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to access your profile page.']
         return render_template('index.html', error=error)
     
-
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
     # render login/register page first
