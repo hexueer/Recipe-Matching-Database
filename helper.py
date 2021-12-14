@@ -104,12 +104,35 @@ def search_titles(conn,title):
        title similar to the provided query, as a dictionary.
     '''
     curs = dbi.dict_cursor(conn)
+    #make sure that the title is more than 1 letter because otherwise all recipe titles with that letter is returned
+    if len(title) == 1:
+        return []
     title = "%" + title + "%"
     curs.execute('''
         select * 
         from recipe
         where title like %s''',
                  [title])
+    return curs.fetchall()
+
+def search_title_ingredients(conn,titles,ingredients):
+    '''Searches and returns data of recipes with given titles and ingredients'''
+    curs = dbi.dict_cursor(conn)
+    titles_formatted = []
+    for i in titles:
+        i = "%" + i['title'] + "%"
+        titles_formatted.append(i)
+    ingredients_formatted = []
+    for i in ingredients:
+        i = i['title']
+        ingredients_formatted.append(i)
+    keys = titles_formatted +ingredients_formatted
+    placeholders = 'title = %s or ' * (len(keys)-1)
+    curs.execute('''select distinct uses.rid, recipe.title
+                    from uses inner join recipe using (rid)
+                    where ''' + placeholders + '''title = %s
+                    '''
+                    ,keys)
     return curs.fetchall()
     
 def get_recipe_ingredients(conn, rid): 

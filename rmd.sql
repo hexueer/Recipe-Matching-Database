@@ -160,6 +160,7 @@ Insert into uses(rid, iid, amount, measurement_unit) values (4, 19, 4, 'piece');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 20, 2, 'piece');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 21, 2, 'cup (c)');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 8, 1, 'cup (c)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 22, 2, 'tablespoon (tbsp)');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 23, 2, 'tablespoon (tbsp)');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 5, 1, 'teaspoon (tsp)');
 Insert into uses(rid, iid, amount, measurement_unit) values (4, 24, 1, 'teaspoon (tsp)');
