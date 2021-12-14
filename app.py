@@ -140,11 +140,9 @@ def search():
     else:
         #title input
         title = request.form['recipe-title'] 
-        print("TITLE REQUEST", title)
         #list of user selected ingredients
         selectedIngredients = request.form.getlist('recipe-ingredients')
-        print("INGREDIENT REQUEST", selectedIngredients)
-
+        print("SELECTED INGREDIENTS", selectedIngredients)
         #Search by both title and ingredients
         #set search results if title input exists
         if len(title) > 0: 
