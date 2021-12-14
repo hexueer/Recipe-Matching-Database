@@ -170,7 +170,6 @@ def get_recipe_image_path(conn, rid):
                     [rid])
     return curs.fetchone()['image_path']
 
-
 # update recipe
 def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,last_updated_date,amounts):
     '''Updates a row with new values (may be equivalent) for each attribute 
@@ -179,6 +178,7 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
     
     # update the recipe in recipe table
     if imagepath == None or '.' not in imagepath:
+        oldimage = None
         curs.execute('''update recipe set
                         title = %s, 
                         cook_time = %s, 
@@ -199,14 +199,6 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
                         last_updated_date = %s
                         where rid = %s''',
                         [title,imagepath,cook_time,servings,instructions,tags,last_updated_date,rid])
-
-        # delete old image
-        oldimage = get_recipe_image_path(conn, rid)
-        pathname = os.path.join(app.config['UPLOADS'],oldimage)
-        if os.path.exists(pathname):
-            os.remove(pathname)
-        else:
-            print("The file does not exist")
             
     conn.commit()
 

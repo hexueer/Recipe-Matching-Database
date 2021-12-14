@@ -195,26 +195,20 @@ def update(rid):
                 if len(error) == 0: 
                     conn = dbi.connect()
                     uid = session['uid']
+
                     # this query will return rid, if successful
-                    added = helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
+                    helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
+                    flash('Form submission successful.')
+
+                    # # delete old image
+                    # pathname = os.path.join(app.config['UPLOADS'],oldimage)
+                    # if os.path.exists(pathname):
+                    #     os.remove(pathname)
+                    # else:
+                    #     print("The file does not exist")
+
+                    return redirect(url_for('recipe', recipe_id = rid))
                     
-                    # if the python/sql insert function was successful, thus returning a string 'success'
-                    if added != "Error uploading recipe.":
-                        flash('Form submission successful.')
-                        return redirect(url_for('recipe', recipe_id = added))
-                    else: #probably a duplicate error
-                        error.append(added)
-                        return render_template('update.html', 
-                                    page_title="Update", 
-                                    error=error,
-                                    user=username, 
-                                    rid=rid, 
-                                    recipe=recipe,
-                                    ingredients=ingredients, 
-                                    ingredientList=ingredientList, 
-                                    units=unitList, 
-                                    tags=tagList
-                                    )
                 # if there are error messages
                 else: 
                     return render_template('update.html', 
