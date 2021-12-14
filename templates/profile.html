@@ -16,7 +16,9 @@
                         {% for recipe in recipes %}
                         <div class="gallery">
                             <a target="_blank" href="../recipe/{{recipe.rid}}" value="{{recipe.rid}}">
-                                <img src="{{recipe.image_path}}" alt="Recipe Image Not Found" width="600" height="400">
+                                <img src="{{url_for('pic', filename=recipe['image_path'])}}"
+                                    alt="Recipe Image Not Found"
+                                    style="height:150px; width:250px; border-radius: 8px;padding-top: 2px;">
                                 <div class="desc">{{recipe.title}}</div>
                             </a>
                         </div>
