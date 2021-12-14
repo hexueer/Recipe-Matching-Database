@@ -19,6 +19,7 @@ body {
     letter-spacing: 2px;
     text-decoration: none;
     text-transform: uppercase;
+    box-sizing: border-box;
 }
 
 main {
@@ -41,7 +42,7 @@ h1 {
                  1px 1px 1px var(--color-focus);
 }
     
-/* for a simple navbar. Talk to Scott if you want drop-downs. */
+/* for a simple navbar */
 nav > ul {
     display: flex;
     flex-direction: column;
@@ -303,7 +304,7 @@ textarea {
 .recipe-detail {
     /*outline-style: solid;
     outline-color: var( --color-header);*/
-    width: 950px;
+    box-sizing: 100%;
     padding: 50px;
     overflow-wrap: break-word;
 }
@@ -338,6 +339,10 @@ h2 {
     text-transform: none;
 }
 
+/* make buttons side-by-side */
+.buttons, form, input {
+    display: inline;
+}
 .instruction-list {
     list-style-type: none;
 }
@@ -370,4 +375,8 @@ div.desc {
     padding: 15px;
     text-align: center;
     bottom: 0px;
+}
+
+.search {
+    margin-right: 10em;
 }

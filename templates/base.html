@@ -24,14 +24,14 @@
             </ul>
 
             {% if user %}
-            <form method="get" action="{{url_for('logout')}}">
-                <p><input type="submit" value="logout {{user}}">
-            </form>
-
             <a href="{{url_for('profile')}}">View Profile</a>
             <!-- <form method="get" action="{{url_for('profile')}}">
                 <p><input type="submit" value="View Profile"></p>
             </form> -->
+
+            <form method="get" action="{{url_for('logout')}}">
+                <p><input type="submit" value="logout {{user}}">
+            </form>
 
             {% else %}
             <form method="get" action="{{url_for('login')}}">
