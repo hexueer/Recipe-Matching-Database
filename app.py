@@ -124,32 +124,25 @@ def update(rid):
     # logged in?
     if 'username' in session:
         username = session.get('username')
+        uid = session.get('uid')
         conn = dbi.connect()
+        
+        try:
+            recipe, creator = helper.recipe_lookup(conn, rid)
+            # just in case html falls through
+            if uid != creator['uid']:
+                flash("You are not the author of this page!")
+                return redirect(url_for('recipe', recipe_id = rid))
+            ingredients = helper.get_recipe_ingredients(conn, rid)
 
-        # show autofilled form
-        if request.method == 'GET':
-            try:
-                recipe, creator = helper.recipe_lookup(conn, rid)
-                ingredients = helper.get_recipe_ingredients(conn, rid)
+            ingredientList = helper.get_ingredients(conn)
+            tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
+            unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice', 'piece']
+        except:
+            return render_template('error.html')
 
-                ingredientList = helper.get_ingredients(conn)
-                tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
-                unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice', 'piece']
-            except:
-                return render_template('error.html')
-
-            return render_template('update.html', 
-                                    page_title="Update", 
-                                    user=username, 
-                                    rid=rid, 
-                                    recipe=recipe,
-                                    ingredients=ingredients, 
-                                    ingredientList=ingredientList, 
-                                    units=unitList, 
-                                    tags=tagList
-                                    )
         # if post
-        else:
+        if request.method == 'POST':
             # update recipe
             if request.form['submit'] == 'update':
                 title = request.form['recipe-title'] 
@@ -185,7 +178,6 @@ def update(rid):
                     else: 
                         break
 
-                post_date = date.today()
                 last_updated_date = date.today()
 
                 error = []
@@ -204,7 +196,7 @@ def update(rid):
                     conn = dbi.connect()
                     uid = session['uid']
                     # this query will return rid, if successful
-                    added = helper.insert_recipe(conn,title,filename,cook_time,int(servings),instructions,tags,post_date,last_updated_date,uid,amounts)
+                    added = helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
                     
                     # if the python/sql insert function was successful, thus returning a string 'success'
                     if added != "Error uploading recipe.":
@@ -212,10 +204,30 @@ def update(rid):
                         return redirect(url_for('recipe', recipe_id = added))
                     else: #probably a duplicate error
                         error.append(added)
-                        return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
+                        return render_template('update.html', 
+                                    page_title="Update", 
+                                    error=error,
+                                    user=username, 
+                                    rid=rid, 
+                                    recipe=recipe,
+                                    ingredients=ingredients, 
+                                    ingredientList=ingredientList, 
+                                    units=unitList, 
+                                    tags=tagList
+                                    )
                 # if there are error messages
                 else: 
-                    return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)      
+                    return render_template('update.html', 
+                                    page_title="Update", 
+                                    error=error,
+                                    user=username, 
+                                    rid=rid, 
+                                    recipe=recipe,
+                                    ingredients=ingredients, 
+                                    ingredientList=ingredientList, 
+                                    units=unitList, 
+                                    tags=tagList
+                                    )  
 
             # delete recipe
             else:
@@ -225,9 +237,23 @@ def update(rid):
                 if deleted == -1:
                     flash("Error deleting recipe. Try again.")
                 else:
-                    flash("Recipe {} deleted ToT")
+                    flash("Recipe {} deleted ToT".format(rid))
 
                 return redirect(url_for('recipe', recipe_id = rid))
+
+        # if get
+        else:
+            return render_template('update.html', 
+                                    page_title="Update", 
+                                    user=username, 
+                                    rid=rid, 
+                                    recipe=recipe,
+                                    ingredients=ingredients, 
+                                    ingredientList=ingredientList, 
+                                    units=unitList, 
+                                    tags=tagList
+                                    )
+
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to update a recipe.']
@@ -282,6 +308,7 @@ def search():
 def recipe(recipe_id):
     conn = dbi.connect()
     username = session.get('username')
+    uid = session.get('uid')
     try:
         recipe, creator = helper.recipe_lookup(conn, recipe_id)
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
@@ -293,6 +320,7 @@ def recipe(recipe_id):
     return render_template('recipe.html', 
                             page_title="Recipe", 
                             user=username, 
+                            uid=uid,
                             recipe = recipe, 
                             filename=recipe['image_path'], 
                             creator = creator, 

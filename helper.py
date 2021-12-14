@@ -85,12 +85,12 @@ def recipe_lookup(conn, rid):
     if recipe is None: 
         return (["Recipe does not exist"], "Error", "Error")
 
-    curs.execute('''select user.name from user 
+    curs.execute('''select user.name, user.uid from user 
                     join recipe using (uid)
                     where recipe.rid = %s''', [rid])
-    user_name = curs.fetchone()
+    user = curs.fetchone()
     #get ingredients with name, amount and measurement_unit
-    return (recipe, user_name)
+    return (recipe, user)
 
 def search_ingredients(conn,ingredients):
     '''Searches by ingredients: finds if user search input 
@@ -130,38 +130,68 @@ def get_recipe_ingredients(conn, rid):
     return curs.fetchall()
 
 # update recipe
-def update_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts):
+def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,last_updated_date,amounts):
     '''Updates a row with new values (may be equivalent) for each attribute 
-    in the Recipe table for a specific rid'''
+    in the Recipe table for a specific rid, will ignore imagepath if none'''
     curs = dbi.dict_cursor(conn)
-    # try:
-    # insert the recipe into recipe
-    curs.execute('''
-        insert into recipe(title,image_path,cook_time,servings,instructions,tag,post_date,last_updated_date,uid)
-        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
-                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
+    
+    # update the recipe in recipe table
+    if imagepath == None:
+        curs.execute('''update recipe set
+                        title = %s, 
+                        cook_time = %s, 
+                        servings = %s, 
+                        instructions = %s, 
+                        tag = %s, 
+                        last_updated_date = %s
+                        where rid = %s''',
+                        [title,cook_time,servings,instructions,tags,last_updated_date,rid])
+    else:
+        curs.execute('''update recipe set
+                        title = %s, 
+                        image_path = %s, 
+                        cook_time = %s, 
+                        servings = %s, 
+                        instructions = %s, 
+                        tag = %s, 
+                        last_updated_date = %s
+                        where rid = %s''',
+                        [title,imagepath,cook_time,servings,instructions,tags,last_updated_date,rid])
     conn.commit()
-    curs.execute('select last_insert_id()')
-    rid = curs.fetchone()
+
+    # delete all previous ingredient entries
+    curs.execute('''delete from uses where rid = %s''',
+                    [rid])
+    conn.commit()
+
     # insert the amounts into uses
     for a in amounts:
         curs = dbi.dict_cursor(conn)
         curs.execute('''
             insert into uses(rid, iid, amount, measurement_unit)
             values (%s, %s, %s, %s)''', 
-                    [rid['last_insert_id()'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
+                    [rid, amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
         conn.commit()
     curs.close()
-    return rid['last_insert_id()']
+
+    return rid
 
 # delete recipe
 def delete_recipe(conn, rid):
-    '''Deletes a recipe from the Recipe table given a specific rid value'''
+    '''Deletes a recipe from the Recipe table given a specific rid value
+        and deletes associated rows from the uses table as well.
+    '''
     curs = dbi.dict_cursor(conn)
+    # delete all previous ingredient entries
+    curs.execute('''delete from uses where rid = %s''',
+                    [rid])
+    conn.commit()
+    # delete recipe entry
     curs.execute('''delete from recipe where rid = %s''',
                     [rid])
     conn.commit()
     
+    # gets num of affected rows by PREVIOUS STATEMENT
     curs.execute('''SELECT ROW_COUNT()''')
     return curs.fetchone()['ROW_COUNT()']
 

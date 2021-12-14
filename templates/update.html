@@ -2,7 +2,7 @@
 
 {% block main_content %}
 
-<h1>Add a Recipe</h1>
+<h1>Update a Recipe</h1>
 
 <div class=container>
     <div class="row">
@@ -60,7 +60,7 @@
                                             {% for ingredient in ingredients %}
                                                 <tr>
                                                     <td>
-                                                        <select class="form-select" name="ingredient{{n}}">
+                                                        <select class="form-select" name="ingredient{{ loop.index }}">
                                                             <option value="">Select an Ingredient</option>
                                                             {% for listitem in ingredientList %}
                                                             {% if listitem.iid == ingredient.iid %}
@@ -71,8 +71,8 @@
                                                             {% endfor %}
                                                         </select>
                                                     </td>
-                                                    <td><input type="text" name="amount{{n}}" value="{{ingredient.amount}}"></td>
-                                                    <td><select class="form-select" name="unit{{n}}">
+                                                    <td><input type="text" name="amount{{ loop.index }}" value="{{ingredient.amount}}"></td>
+                                                    <td><select class="form-select" name="unit{{ loop.index }}">
                                                         <option value="">Select a Unit</option>
                                                         {% for unit in units %}
                                                         {% if unit == ingredient.measurement_unit %}
