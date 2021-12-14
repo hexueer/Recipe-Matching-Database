@@ -68,10 +68,11 @@ def insert():
                 filename = None
 
             amounts = {}
-            
+            print(request.form.keys())
             i = 1
-            while ('ingredient' + str(i)) in request.form.keys():
+            while ('ingredient' + str(i)) in request.form.keys(): 
                 if request.form['ingredient' + str(i)] != "":  
+                    print(request.form['ingredient' + str(i)])
                     amounts[str(i)] = {}
                     amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
                     amounts[str(i)]['amount'] = request.form['amount' + str(i)]
@@ -93,6 +94,8 @@ def insert():
                 error.append("Please enter recipe instructions.")
             if len(amounts) == 0: 
                 error.append("Please enter at least one ingredient.")
+            if len(servings) == 0: 
+                error.append("Please enter serving sizes.")
             
             # if there are no error messages
             if len(error) == 0: 

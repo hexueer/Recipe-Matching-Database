@@ -47,7 +47,7 @@
                             <p class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
                                 {% for searchResult in searchResults %}
                                 <div class="gallery">
-                                    <a target="_blank" href="../recipe/{{searchResult.rid}}"
+                                    <a href="../recipe/{{searchResult.rid}}"
                                         value="{{searchResult.rid}}">
                                         <img src="{{url_for('pic', filename=searchResult['image_path'])}}"
                                             alt="Recipe Image Not Found"

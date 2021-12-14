@@ -283,6 +283,18 @@ form {
     padding: 1em;
 }
 
+.left {
+    text-align:right;
+}
+.right {
+    text-align:left;
+}
+
+.noshow {
+    visibility: hidden;
+    max-width: 0px;
+}
+
 fieldset,table {
     width:100%
 }
