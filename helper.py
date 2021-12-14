@@ -11,8 +11,8 @@ def getUID(conn, username):
     return curs.fetchone()['uid']
 
 def insert_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts): 
-    '''inserts a recipe into the recipes table in my personal
-       database using given params. 
+    '''inserts a recipe into the recipes table
+       using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
     # try:
@@ -39,17 +39,23 @@ def insert_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post
     #     error = "Error uploading recipe."
     #     return error
 
-def check_title(conn, title): 
+def check_title(conn, title, rid=None): 
     '''selects titles from recipe like given title parameter
        returns True if no matches found, false if another 
        recipe already exists. 
     ''' 
     curs = dbi.dict_cursor(conn)
     try:
-        curs.execute('''
-            select title from recipe
-            where title = %s''', 
-                    [title]) 
+        if rid == None:
+            curs.execute('''
+                select title from recipe
+                where title = %s''', 
+                        [title]) 
+        else:
+            curs.execute('''
+                select title from recipe
+                where title = %s and rid <> %s''', 
+                        [title, rid]) 
         titles = curs.fetchall()
         return len(titles) == 0
     except: 
@@ -116,23 +122,37 @@ def get_recipe_ingredients(conn, rid):
     '''Returns all ingredient ids and names.
     ''' 
     curs = dbi.dict_cursor(conn)
-    curs.execute('''select uses.rid, ingredient.name, uses.amount, uses.measurement_unit 
+    curs.execute('''select uses.rid, uses.iid, ingredient.name, uses.amount, uses.measurement_unit 
                     from uses 
                     inner join ingredient using (iid) 
                     where rid = %s''', 
                     [rid])
     return curs.fetchall()
-    
 
 # update recipe
-def update_recipe(conn, rid):
+def update_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts):
     '''Updates a row with new values (may be equivalent) for each attribute 
     in the Recipe table for a specific rid'''
     curs = dbi.dict_cursor(conn)
-    curs.execute('''update movie set rid=%s
-                    where rid=%s ''',
-                    [rid])
+    # try:
+    # insert the recipe into recipe
+    curs.execute('''
+        insert into recipe(title,image_path,cook_time,servings,instructions,tag,post_date,last_updated_date,uid)
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
+                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
     conn.commit()
+    curs.execute('select last_insert_id()')
+    rid = curs.fetchone()
+    # insert the amounts into uses
+    for a in amounts:
+        curs = dbi.dict_cursor(conn)
+        curs.execute('''
+            insert into uses(rid, iid, amount, measurement_unit)
+            values (%s, %s, %s, %s)''', 
+                    [rid['last_insert_id()'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
+        conn.commit()
+    curs.close()
+    return rid['last_insert_id()']
 
 # delete recipe
 def delete_recipe(conn, rid):
@@ -141,21 +161,9 @@ def delete_recipe(conn, rid):
     curs.execute('''delete from recipe where rid = %s''',
                     [rid])
     conn.commit()
-
-def confirmation_required(desc_fn):
-    def inner(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            if request.args.get('confirm') != '1':
-                desc = desc_fn()
-                return redirect(url_for('confirm', 
-                    desc=desc, action_url=quote(request.url)))
-            return f(*args, **kwargs)
-        return wrapper
-    return inner
-
-def you_sure():
-    return "Are you sure?"
+    
+    curs.execute('''SELECT ROW_COUNT()''')
+    return curs.fetchone()['ROW_COUNT()']
 
 def validate_login(conn, username):
     '''Ensures valid login - takes a dbi connection and a 

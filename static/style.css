@@ -337,3 +337,8 @@ h2 {
 #inst {
     text-transform: none;
 }
+
+/* make buttons side-by-side */
+.buttons, form, input {
+    display: inline;
+}
