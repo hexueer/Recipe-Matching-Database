@@ -92,17 +92,33 @@ def recipe_lookup(conn, rid):
     #get ingredients with name, amount and measurement_unit
     return (recipe, user)
 
+def get_iid(conn, ingredients):
+    '''Takes an ingredient name and returns the matching iid in 
+       the ingredient table'''
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'name = %s or ' * (len(ingredients)-1)
+    curs.execute('''SELECT iid
+                    FROM ingredient
+                    WHERE '''+ placeholders + '''name = %s
+                    ''',
+                    ingredients)
+    return curs.fetchall()
+
 def search_ingredients(conn,ingredients):
     '''Searches by ingredients: finds if user search input 
        matches recipes in recipe database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
+    all_ingredients = []
+    for i in ingredients:
+        all_ingredients.append(i['iid'])
+
     curs.execute('''select distinct uses.rid, recipe.image_path, recipe.title
                     from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''
-                    ,ingredients)
+                    ,all_ingredients)
     return curs.fetchall()
 
 def search_titles(conn,title):
@@ -126,7 +142,7 @@ def search_title_ingredients(conn,titles,ingredients):
     curs = dbi.dict_cursor(conn)
     titles_formatted = []
     for i in titles:
-        i = "%" + i['title'] + "%"
+        i = i['title'].strip()
         titles_formatted.append(i)
     ingredients_formatted = []
     for i in ingredients:
@@ -161,6 +177,15 @@ def get_user_recipes(conn, username):
                     where username = %s''', [username])
     return curs.fetchall()
 
+def get_recipe_image_path(conn, rid):
+    '''Gets image_path from recipe table given rid.'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select image_path 
+                    from recipe 
+                    where rid = %s''',
+                    [rid])
+    return curs.fetchone()['image_path']
+
 # update recipe
 def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,last_updated_date,amounts):
     '''Updates a row with new values (may be equivalent) for each attribute 
@@ -168,7 +193,8 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
     curs = dbi.dict_cursor(conn)
     
     # update the recipe in recipe table
-    if imagepath == None:
+    if imagepath == None or '.' not in imagepath:
+        oldimage = None
         curs.execute('''update recipe set
                         title = %s, 
                         cook_time = %s, 
@@ -189,6 +215,7 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
                         last_updated_date = %s
                         where rid = %s''',
                         [title,imagepath,cook_time,servings,instructions,tags,last_updated_date,rid])
+            
     conn.commit()
 
     # delete all previous ingredient entries
