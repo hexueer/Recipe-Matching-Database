@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Add a Recipe</h1>
+
+<div class=container>
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <form method="post" action="{{url_for('insert')}}" enctype="multipart/form-data">
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Recipe Data</legend>
+                    <table class="recipeTable" role="presentation">
+                        <tbody>
+                            <tr>
+                                <td class="left"><label for="recipe-title">Recipe Title: </label></td>
+                                <td class="right"><input id="recipe-title" type="text" name="recipe-title"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-image">Upload an Image:</label></td>
+                                <td class="right"><input type="file" id="recipe-image" name="recipe-image"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-tags">Tags: </label></td>
+                                <td class="right">
+                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                        {% for tag in tags %}
+                                        <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-time">Cooking Time: (minutes)</label></td>
+                                <td class="right"><input id="recipe-time" type="text" name="recipe-time"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-servings">Servings: </label></td>
+                                <td class="right"><input id="recipe-servings" type="text" name="recipe-servings"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="ingredient1">Ingredients: </label></td>
+                                <td class="right">
+                                    <p style="align-self: center;">Please insert amounts as whole numbers or decimals</p>
+                                    <table role="presentation" class="table" id='ingredients-table' style="margin-bottom: 1em">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Amount</th>
+                                                <th scope="col">Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Each recipe can hold <= 10 ingredients -->
+                                            {% for n in range(1, 11) %}
+                                                <tr>
+                                                    <td>
+                                                        <select class="form-select" name="ingredient{{n}}">
+                                                            <option value="">Select an Ingredient</option>
+                                                            {% for ingredient in ingredients %}
+                                                            <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" name="amount{{n}}"></td>
+                                                    <td><select class="form-select" name="unit{{n}}">
+                                                        <option value="">Select a Unit</option>
+                                                        {% for unit in units %}
+                                                        <option value="{{ unit }}">{{ unit }}</option>
+                                                        {% endfor %}
+                                                    </select></td>
+                                               </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <a href="#" class="add-more">Add Another Ingredient</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-instructions">Instructions: </label></td>
+                                <td class="right"><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4" style="margin-top: 1em"></textarea></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8 justify-content-center">
+                        <p class="pbtn">
+                            <input type="submit" value="Add Recipe">
+                        </p>
+                    </div>
+                    <div class="col-2"></div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // script for adding extra rows of ingredients to form
+    jQuery(document).ready(function(){
+        let n = 11
+        jQuery('.add-more').click(function(event){
+            event.preventDefault();
+            jQuery('#ingredients-table').append('<tr><td><select class="form-select" name="ingredient' + n + '"><option value="">Select an Ingredient</option>{% for ingredient in ingredients %}<option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>{% endfor %}</select></td><td><input type="text" name="amount' + n + '"></td><td><select class="form-select" name="unit' + n + '"><option value="">Select a Unit</option>{% for unit in units %}<option value="{{ unit }}">{{ unit }}</option>{% endfor %}</select></td></tr>');
+            n += 1;
+        }); 
+    });
+</script>
+
+{% endblock %}
