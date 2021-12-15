@@ -6,7 +6,7 @@
     <!-- for mobile-friendly pages -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name=author content="Ivy Ho">
-
+    
     <title>{{ page_title }}</title>
     <link rel='stylesheet' href="{{url_for('static', filename = 'style.css')}}">
     {% block head_stuff %} {% endblock %}
@@ -18,20 +18,21 @@
         {% block nav %}
         <nav>
             <ul>
+                <img src="{{url_for('pic', filename='logo.png')}}" alt="logo"/>
                 <li><a href="{{url_for('index')}}">Home</a></li>
                 <li><a href="{{url_for('insert')}}">Insert a Recipe</a></li>
                 <li><a href="{{url_for('search')}}">Search for a Recipe</a></li>
             </ul>
 
             {% if user %}
-            <form method="get" action="{{url_for('logout')}}">
-                <p><input type="submit" value="logout {{user}}">
-            </form>
-
             <a href="{{url_for('profile')}}">View Profile</a>
             <!-- <form method="get" action="{{url_for('profile')}}">
                 <p><input type="submit" value="View Profile"></p>
             </form> -->
+
+            <form method="get" action="{{url_for('logout')}}">
+                <p><input type="submit" value="logout {{user}}">
+            </form>
 
             {% else %}
             <form method="get" action="{{url_for('login')}}">

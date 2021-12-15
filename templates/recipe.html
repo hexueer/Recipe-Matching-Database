@@ -54,6 +54,16 @@
                 </div>
             </div>
         </div>
+        {% if uid == creator.uid %}
+        <div class="buttons">
+            <form method=GET action="{{url_for('update', rid = recipe_id)}}">
+                <input type="submit" name="submit" value="update">
+            </form>
+            <form method=POST onSubmit="return confirm('Are you sure you wish to delete?');" action="{{url_for('delete', rid = recipe_id)}}">
+                <input type="submit" name="submit" value="delete">
+            </form>
+        </div>
+        {% endif %}
     </div>
 </div>
 
