@@ -125,12 +125,13 @@ a bowl. Season with salt. 3. For the balsamic glaze, combine sugar and vinegar i
 boil. Reduce heat to low; allow to simmer for 5-8 minutes or until mixture has thickened. 4. Top each chicken breast with the tomato 
 mixture and parmesan cheese; serve immediately.', 'lunch, dinner, stovetop', '2021-12-13', '2021-12-13');
  
-insert into uses(rid, iid, amount, measurement_unit) values (3,10,2,'whole');
-insert into uses(rid, iid, amount, measurement_unit) values (3,11,1,'tablespoon (tbsp)');
-insert into uses(rid, iid, amount, measurement_unit) values (3,12,2,'teaspoons (tsp)');
-insert into uses(rid, iid, amount, measurement_unit) values (3,13,1,'pinch');
+insert into uses(rid, iid, amount, measurement_unit) values (3,11,2,'whole');
+insert into uses(rid, iid, amount, measurement_unit) values (3,12,1,'tablespoon (tbsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,13,2,'teaspoons (tsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,6,1,'pinch');
+insert into uses(rid, iid, amount, measurement_unit) values (3,5,1,'tablespoon (tbsp)');
 insert into uses(rid, iid, amount, measurement_unit) values (3,1,4,'each');
-insert into uses(rid, iid, amount, measurement_unit) values (3,6,0.25,'each');
+insert into uses(rid, iid, amount, measurement_unit) values (3,14,0.25,'each');
 insert into uses(rid, iid, amount, measurement_unit) values (3,3,0.25,'cup (c)');
 insert into uses(rid, iid, amount, measurement_unit) values (3,5,2,'tablespoon (tbsp)');
 insert into uses(rid, iid, amount, measurement_unit) values (3,15,0.5,'cup (c)');

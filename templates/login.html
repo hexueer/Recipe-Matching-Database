@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 
 {% block main_content %}
+<h1>Hello!</h1>
+<h1>Please log in or register below!</h1>
+
 <!-- Tab links -->
 <div class="tab">
         <button class="tablinks" onclick="openTab(event, 'login')" id="defaultOpen">login</button>
@@ -10,7 +13,7 @@
     <!-- Tab content -->
     <div id="login" class="tabcontent">
         <form method="post" action="{{url_for('login')}}">
-            <fieldset>
+            <fieldset class="fields">
             <legend>login credentials</legend>
                 <table>
                     <tr><td><label for="username">Username: </label></td>
@@ -26,7 +29,7 @@
   
     <div id="register" class="tabcontent">
         <form method="post" action="{{url_for('login')}}">
-            <fieldset>
+            <fieldset class="fields">
             <legend>Make an Account</legend>
                 <table>
                     <tr><td><label for="fullname">Full Name: </label></td>

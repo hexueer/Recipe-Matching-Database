@@ -161,6 +161,15 @@ def get_user_recipes(conn, username):
                     where username = %s''', [username])
     return curs.fetchall()
 
+def get_recipe_image_path(conn, rid):
+    '''Gets image_path from recipe table given rid.'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select image_path 
+                    from recipe 
+                    where rid = %s''',
+                    [rid])
+    return curs.fetchone()['image_path']
+
 # update recipe
 def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,last_updated_date,amounts):
     '''Updates a row with new values (may be equivalent) for each attribute 
@@ -168,7 +177,8 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
     curs = dbi.dict_cursor(conn)
     
     # update the recipe in recipe table
-    if imagepath == None:
+    if imagepath == None or '.' not in imagepath:
+        oldimage = None
         curs.execute('''update recipe set
                         title = %s, 
                         cook_time = %s, 
@@ -189,6 +199,7 @@ def update_recipe(conn,rid,title,imagepath,cook_time,servings,instructions,tags,
                         last_updated_date = %s
                         where rid = %s''',
                         [title,imagepath,cook_time,servings,instructions,tags,last_updated_date,rid])
+            
     conn.commit()
 
     # delete all previous ingredient entries
