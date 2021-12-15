@@ -41,7 +41,7 @@ h1 {
     text-shadow: 1px 1px 1px var(--color-focus),
                  1px 1px 1px var(--color-focus);
 }
-    
+
 /* for a simple navbar */
 nav > ul {
     display: flex;
@@ -56,7 +56,13 @@ nav ul {
 
 nav > ul > li {
     flex: 0 0 auto;
-    width: 15em; 
+    width: 13em; 
+}
+
+nav img {
+    width: 12em;
+    align-self: center;
+    margin-left: 1em;
 }
 
 nav button, nav a {
@@ -232,7 +238,7 @@ input[type=submit]:active {
 /* Style the tab content */
 .tabcontent {
     display: none;
-    padding: 30px;
+    padding: 2em 5em 2em 3em;
     border: 3px solid var(--color-dark);
     border-left: none;
     border-top: none;
@@ -245,6 +251,10 @@ input[type=submit]:active {
 .tabcontent > form > fieldset {
     border: 3px solid var(--color-dark);
     border-radius: 1em;
+}
+
+.fields input {
+    width: 80%;
 }
 
 /* Fade in tabs */
