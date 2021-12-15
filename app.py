@@ -342,6 +342,7 @@ def recipe(recipe_id):
         if (instruction.strip()).isdigit()  or instruction == '':
             instructions.remove(instruction)
     # print(instructions)
+    print(recipe['tag'])
     return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, uid=uid, recipe = recipe, filename=recipe['image_path'], creator = creator, ingredients = ingredients, recipe_id = recipe_id)
 
 @app.route('/profile/')
@@ -463,4 +464,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',8228)
+    app.run('0.0.0.0',port)
