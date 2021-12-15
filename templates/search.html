@@ -16,20 +16,22 @@
                         <tbody>
                             <tr>
                                 <td><label for="recipe-title">Search by Recipe Title: </label></td>
-                                <td><input id="recipe-title" type="text" name="recipe-title"></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title" placeholder="Title"></td>
                             </tr>
                             <tr>
                                 <td><label for="recipe-ingredients">Search by Ingredients: </label></td>
                                 <td>
                                     <p>Enter all the ingredients you have </p>
-                                    <form autocomplete="off" action="/action_page.php" >
+                                    <form autocomplete="off">
                                         <div class="autocomplete" style="width:300px;">
                                           <!-- <input id="myInput"  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients" > -->
-                                          <input  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients" >
+                                          <input  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients">
+                                          <!-- <p id="ri"></p> -->
                                         </div>
                                         <!-- <input type="submit"> -->
+                                        <div id="user_input" ></div>
                                       </form>
-                                    <div id="user_input" ></div>
+                                    
                                     <!-- <p>Select all the ingredients you have </p>
                                     <select class="form-select" multiple id="recipe-ingredients"
                                         name="recipe-ingredients">
@@ -78,14 +80,14 @@
 <script type="text/javascript">
     // script for autocomplete
     //load the ingredients as autocomplete options
-    var countries_json = '{{ ingredients|tojson }}';
-    countries_json = JSON.parse(countries_json);
-    var countries = [];
-    for (i = 0; i < countries_json.length; i++) {
-        console.log(countries_json[i]['name']);
-        countries.push(countries_json[i]['name']);
+    var ingredients_json = '{{ ingredients|tojson }}';
+    ingredients_json = JSON.parse(ingredients_json);
+    var ingredients = [];
+    for (i = 0; i < ingredients_json.length; i++) {
+        console.log(ingredients_json[i]['name']);
+        ingredients.push(ingredients_json[i]['name']);
     }
-    // console.log('ingredients',countries);
+    // console.log('ingredients',ingredients);
     function autocomplete(inp, arr) {
         /*the autocomplete function takes two arguments,
         the text field element and an array of possible autocompleted values:*/
@@ -122,13 +124,19 @@
                     (or any other open lists of autocompleted values:*/
                     closeAllLists();
 
-                    var tag = document.createElement("p");
-                    var text = document.createTextNode(String(inp.value));
-                    tag.appendChild(text);
-                    var element = document.getElementById("user_input");
-                    element.appendChild(tag);
 
-                    document.getElementById('recipe-ingredients').value = "";
+                    jQuery('#user_input').append("<p id='ri'>"+String(inp.value) + '</p>');
+                    var user_input_elem = document.getElementById("user_input").childNodes;
+                    var ingredients_text = '';
+                    for(var i = 0; i < user_input_elem.length; i++) {
+                        //maybe reutrn array instead?
+                        ingredients_text += user_input_elem[i].textContent + ',';
+                        console.log('hi?')
+                    }
+                    console.log('user_input_elem',user_input_elem[0]);
+                    console.log('all ingredients',ingredients_text);
+                    //set what the form returns to the request.get to be all ingredients
+                    document.getElementById('recipe-ingredients').value = ingredients_text;
                 });
                 a.appendChild(b);
                 }
@@ -191,7 +199,7 @@
         closeAllLists(e.target);
     });
     }
-    autocomplete(document.getElementById("recipe-ingredients"), countries);
+    autocomplete(document.getElementById("recipe-ingredients"), ingredients);
 
 </script>
 {% endblock %}

@@ -86,17 +86,33 @@ def recipe_lookup(conn, rid):
     #get ingredients with name, amount and measurement_unit
     return (recipe, user_name)
 
+def get_iid(conn, ingredients):
+    '''Takes an ingredient name and returns the matching iid in 
+       the ingredient table'''
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'name = %s or ' * (len(ingredients)-1)
+    curs.execute('''SELECT iid
+                    FROM ingredient
+                    WHERE '''+ placeholders + '''name = %s
+                    ''',
+                    ingredients)
+    return curs.fetchall()
+
 def search_ingredients(conn,ingredients):
     '''Searches by ingredients: finds if user search input 
        matches recipes in recipe database using given params. 
     ''' 
     curs = dbi.dict_cursor(conn)
     placeholders = 'iid = %s or ' * (len(ingredients)-1)
+    all_ingredients = []
+    for i in ingredients:
+        all_ingredients.append(i['iid'])
+
     curs.execute('''select distinct uses.rid, recipe.image_path, recipe.title
                     from uses inner join recipe using (rid)
                     where ''' + placeholders + '''iid = %s
                     '''
-                    ,ingredients)
+                    ,all_ingredients)
     return curs.fetchall()
 
 def search_titles(conn,title):
@@ -120,7 +136,7 @@ def search_title_ingredients(conn,titles,ingredients):
     curs = dbi.dict_cursor(conn)
     titles_formatted = []
     for i in titles:
-        i = "%" + i['title'] + "%"
+        i = i['title'].strip()
         titles_formatted.append(i)
     ingredients_formatted = []
     for i in ingredients:

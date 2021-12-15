@@ -140,25 +140,32 @@ def search():
     else:
         #title input
         title = request.form['recipe-title'] 
-        print('title',title)
         #list of user selected ingredients
         selectedIngredients = request.form.getlist('recipe-ingredients')
-        print("SELECTED INGREDIENTS", selectedIngredients)
+        #parse selected ingredients
+        selectedIngredients = selectedIngredients[0].strip(',').split(',')
+        #ensure that an empty string is not considered as input
+        if len(selectedIngredients) ==1:
+            if selectedIngredients[0] == "":
+                selectedIngredients = []
+
         #Search by both title and ingredients
         #set search results if title input exists
         if len(title) > 0: 
             searchResults = helper.search_titles(conn,title)
             #set search results if selected ingredient input exists
         elif len(selectedIngredients) > 0:
-            searchResults = helper.search_ingredients(conn,selectedIngredients)
+            searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
+
             #set search results if both title and ingredients input exist
-        elif len(title) > 0 and len(selectedIngredients) > 0:
+        if len(title) > 0 and len(selectedIngredients) > 0:
             #merging search results to avoid repetition
             title_searchResults = helper.search_titles(conn,title)
-            ingredient_searchResults = helper.search_ingredients(conn,selectedIngredients)
+            ingredient_searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
             searchResults = helper.search_title_ingredients(conn, title_searchResults,ingredient_searchResults)
+
         #if recipes were not found
-        else:
+        if len(title) == 0 and len(selectedIngredients) == 0:
             searchResults = []
         if len(searchResults) < 1:
             error = ['No recipes matched your search.']
