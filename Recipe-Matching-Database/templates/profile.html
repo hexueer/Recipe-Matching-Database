@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Profile</h1>
+
+<div class="profile information">
+    <div class=container>
+        <div class="row">
+            <div class="col-2"></div>
+            <div class="col-8">
+                <p>Hello {{user}}, welcome to your profile page.</p>
+                <p>View the recipes that you have created below: </p>
+                <div class="recipe_profile">
+                    <td>
+                        {% for recipe in recipes %}
+                        <div class="gallery">
+                            <a href="../recipe/{{recipe.rid}}" value="{{recipe.rid}}">
+                                <img src="{{url_for('pic', filename=recipe['image_path'])}}"
+                                    alt="Recipe Image Not Found">
+                                <div class="desc">{{recipe.title}}</div>
+                            </a>
+                        </div>
+                        {% endfor %}
+
+                    </td>
+                </div>
+                </li>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
