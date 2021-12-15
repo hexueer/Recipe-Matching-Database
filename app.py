@@ -260,7 +260,7 @@ def delete(rid):
         else:
             flash("Recipe {} deleted ToT".format(rid))
 
-        return redirect(url_for('recipe', recipe_id = rid))
+        return redirect(url_for('index'))
 
     else:
         # flash, cannot update recipe without being logged in
@@ -332,7 +332,7 @@ def recipe(recipe_id):
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
     except:
         error = ['Sorry, the recipe you are looking for is not in the database.']
-        return render_template('search.html', page_title="Search", user=username, error=error)
+        return render_template('index.html', error=error)
     # tags = recipe.tag.split(",")
     #print(recipe['instructions'])
 
