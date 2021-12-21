@@ -260,7 +260,7 @@ def delete(rid):
         else:
             flash("Recipe {} deleted ToT".format(rid))
 
-        return redirect(url_for('index'))
+        return redirect(url_for('recipe', recipe_id = rid))
 
     else:
         # flash, cannot update recipe without being logged in
@@ -332,14 +332,17 @@ def recipe(recipe_id):
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
     except:
         error = ['Sorry, the recipe you are looking for is not in the database.']
-        return render_template('index.html', error=error)
+        return render_template('search.html', page_title="Search", user=username, error=error)
     # tags = recipe.tag.split(",")
+    #print(recipe['instructions'])
 
     instructions = recipe['instructions'].split('. ')
 
     for instruction in instructions:
         if (instruction.strip()).isdigit()  or instruction == '':
             instructions.remove(instruction)
+    # print(instructions)
+    print(recipe['tag'])
     return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, uid=uid, recipe = recipe, filename=recipe['image_path'], creator = creator, ingredients = ingredients, recipe_id = recipe_id)
 
 @app.route('/profile/')
@@ -375,6 +378,7 @@ def login():
             hashed = bcrypt.hashpw(passwd.encode('utf-8'),
                                 bcrypt.gensalt())
             stored = hashed.decode('utf-8')
+            # print(passwd, type(passwd), hashed, stored)
 
             conn = dbi.connect()
             curs = dbi.cursor(conn)
@@ -397,6 +401,7 @@ def login():
             session['logged_in'] = True
             session['visits'] = 1
             return redirect( url_for('index', page_title="RMD", user=username) )
+            # return redirect( url_for('user', username=username) )
 
         # else login
         else:
@@ -411,16 +416,21 @@ def login():
                 flash('login incorrect. Try again or join')
                 return redirect( url_for('login'))
             stored = row['hashed']
+            # print('database has stored: {} {}'.format(stored,type(stored)))
+            # print('form supplied passwd: {} {}'.format(passwd,type(passwd)))
             hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
                                     stored.encode('utf-8'))
             hashed2_str = hashed2.decode('utf-8')
+            # print('rehash is: {} {}'.format(hashed2_str,type(hashed2_str)))
             if hashed2_str == stored:
+                # print('they match!')
                 flash('successfully logged in as '+username)
                 session['username'] = username
                 session['uid'] = row['uid']
                 session['logged_in'] = True
                 session['visits'] = 1
                 return redirect( url_for('index', page_title="RMD", user=username) )
+                # return redirect( url_for('user', username=username) )
             else:
                 flash('login incorrect. Try again or join')
                 return redirect( url_for('login'))
@@ -454,5 +464,4 @@ if __name__ == '__main__':
     else:
         port = os.getuid()
     app.debug = True
-    app.run('0.0.0.0',8266)
-    # app.run('0.0.0.0',port)
+    app.run('0.0.0.0',port)

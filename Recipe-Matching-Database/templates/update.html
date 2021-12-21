@@ -2,48 +2,51 @@
 
 {% block main_content %}
 
-<h1>Add a Recipe</h1>
+<h1>Update a Recipe</h1>
 
 <div class=container>
     <div class="row">
         <div class="col-2"></div>
         <div class="col-8">
-            <form method="post" action="{{url_for('insert')}}" enctype="multipart/form-data">
+            <form method="post" action="{{url_for('update', rid = rid)}}" enctype="multipart/form-data">
                 <input type="hidden" name="form-name" value="form1">
                 <fieldset>
                     <legend>Recipe Data</legend>
-                    <table class="recipeTable" role="presentation">
+                    <table role="presentation">
                         <tbody>
                             <tr>
-                                <td class="left"><label for="recipe-title">Recipe Title: </label></td>
-                                <td class="right"><input id="recipe-title" type="text" name="recipe-title"></td>
+                                <td><label for="recipe-title">Recipe Title: </label></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title" value="{{recipe.title}}"></td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="recipe-image">Upload an Image:</label></td>
-                                <td class="right"><input type="file" id="recipe-image" name="recipe-image"></td>
+                                <td><label for="recipe-image">Upload an Image:</label></td>
+                                <td><input type="file" id="recipe-image" name="recipe-image"></td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="recipe-tags">Tags: </label></td>
-                                <td class="right">
+                                <td><label for="recipe-tags">Tags: </label></td>
+                                <td>
                                     <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
                                         {% for tag in tags %}
+                                        {% if tag in recipe.tag %}
+                                        <option value="{{ tag }}" selected> {{ tag }} </option>
+                                        {% else %}
                                         <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endif %}
                                         {% endfor %}
                                     </select>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="recipe-time">Cooking Time: (minutes)</label></td>
-                                <td class="right"><input id="recipe-time" type="text" name="recipe-time"></td>
+                                <td><label for="recipe-time">Cooking Time: (minutes)</label></td>
+                                <td><input id="recipe-time" type="text" name="recipe-time" value={{recipe.cook_time}}></td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="recipe-servings">Servings: </label></td>
-                                <td class="right"><input id="recipe-servings" type="text" name="recipe-servings"></td>
+                                <td><label for="recipe-servings">Servings: </label></td>
+                                <td><input id="recipe-servings" type="text" name="recipe-servings" value="{{recipe.servings}}"></td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="ingredient1">Ingredients: </label></td>
-                                <td class="right">
-                                    <p style="align-self: center;">Please insert amounts as whole numbers or decimals</p>
+                                <td><label for="ingredient1">Ingredients: </label></td>
+                                <td>
                                     <table role="presentation" class="table" id='ingredients-table' style="margin-bottom: 1em">
                                         <thead>
                                             <tr>
@@ -54,21 +57,29 @@
                                         </thead>
                                         <tbody>
                                             <!-- Each recipe can hold <= 10 ingredients -->
-                                            {% for n in range(1, 11) %}
+                                            {% for ingredient in ingredients %}
                                                 <tr>
                                                     <td>
-                                                        <select class="form-select" name="ingredient{{n}}">
+                                                        <select class="form-select" name="ingredient{{ loop.index }}">
                                                             <option value="">Select an Ingredient</option>
-                                                            {% for ingredient in ingredients %}
-                                                            <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                                            {% for listitem in ingredientList %}
+                                                            {% if listitem.iid == ingredient.iid %}
+                                                            <option value="{{ listitem.iid }}" selected>{{ listitem.name }}</option>
+                                                            {% else %}
+                                                            <option value="{{ listitem.iid }}">{{ listitem.name }}</option>
+                                                            {% endif %}
                                                             {% endfor %}
                                                         </select>
                                                     </td>
-                                                    <td><input type="text" name="amount{{n}}"></td>
-                                                    <td><select class="form-select" name="unit{{n}}">
+                                                    <td><input type="text" name="amount{{ loop.index }}" value="{{ingredient.amount}}"></td>
+                                                    <td><select class="form-select" name="unit{{ loop.index }}">
                                                         <option value="">Select a Unit</option>
                                                         {% for unit in units %}
+                                                        {% if unit == ingredient.measurement_unit %}
+                                                        <option value="{{ unit }}" selected>{{ unit }}</option>
+                                                        {% else %}
                                                         <option value="{{ unit }}">{{ unit }}</option>
+                                                        {% endif %}
                                                         {% endfor %}
                                                     </select></td>
                                                </tr>
@@ -79,8 +90,8 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="recipe-instructions">Instructions: </label></td>
-                                <td class="right"><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4" style="margin-top: 1em"></textarea></td>
+                                <td><label for="recipe-instructions">Instructions: </label></td>
+                                <td><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4" style="margin-top: 1em">{{recipe.instructions}}</textarea></td>
                             </tr>
                         </tbody>
                     </table>
@@ -89,7 +100,14 @@
                     <div class="col-2"></div>
                     <div class="col-8 justify-content-center">
                         <p class="pbtn">
-                            <input type="submit" value="Add Recipe">
+                            <div class="buttons">
+                                <form method=POST onSubmit="return confirm('Are you sure you want to update?');" action="{{url_for('update', rid = rid)}}">
+                                    <input type="submit" name="submit" value="update">
+                                </form>
+                                <form method=POST onSubmit="return confirm('Are you sure you wish to delete?');" action="{{url_for('delete', rid = rid)}}">
+                                    <input type="submit" name="submit" value="delete">
+                                </form>
+                            </div>
                         </p>
                     </div>
                     <div class="col-2"></div>
