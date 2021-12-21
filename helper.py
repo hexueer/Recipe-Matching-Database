@@ -127,9 +127,10 @@ def search_titles(conn,title):
     '''
     curs = dbi.dict_cursor(conn)
     #make sure that the title is more than 1 letter because otherwise all recipe titles with that letter is returned
-    if len(title) == 1:
-        return []
+    # if len(title) == 1:
+    #     return []
     title = "%" + title + "%"
+    print("HOOLA",title)
     curs.execute('''
         select * 
         from recipe
@@ -150,7 +151,7 @@ def search_title_ingredients(conn,titles,ingredients):
         ingredients_formatted.append(i)
     keys = titles_formatted +ingredients_formatted
     placeholders = 'title = %s or ' * (len(keys)-1)
-    curs.execute('''select distinct uses.rid, recipe.title
+    curs.execute('''select distinct uses.rid, recipe.title, recipe.image_path
                     from uses inner join recipe using (rid)
                     where ''' + placeholders + '''title = %s
                     '''
