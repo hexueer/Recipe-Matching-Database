@@ -15,9 +15,14 @@
                     <td>
                         {% for recipe in recipes %}
                         <div class="gallery">
-                            <a href="../recipe/{{recipe.rid}}" value="{{recipe.rid}}">
-                                <img src="{{url_for('pic', filename=recipe['image_path'])}}"
-                                    alt="Recipe Image Not Found">
+                            <!-- <a href="../recipe/{{recipe.rid}}" value="{{recipe.rid}}"> -->
+                            <a href="{{url_for('recipe', recipe_id=recipe.rid)}}" value="{{recipe.rid}}">   
+                                {% if recipe.image_path %}
+                                    <img src="{{url_for('pic', filename=recipe.image_path)}}"
+                                        alt="Recipe Image Not Found">
+                                {% else %}
+                                    <p>Image not found</p>
+                                {% endif %}
                                 <div class="desc">{{recipe.title}}</div>
                             </a>
                         </div>

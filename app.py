@@ -36,27 +36,34 @@ def insert():
     if 'username' not in session:
         # flash, cannot insert recipe without being logged in
         error = ['Please log in to insert a recipe.']
-        return render_template('index.html', error=error)
+        return render_template('index.html', page_title="RMD", error=error)
     else: 
         username = session.get('username')
         conn = dbi.connect()
         ingredientList = helper.get_ingredients(conn)
-        tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
-        unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice', 'piece']
+        tagList = ['breakfast', 'lunch', 'dinner', 'snack', 
+                    'vegan', 'vegetarian', 'pescatarian', 
+                    'quick meals', 'bake', 'one-pan meal', 
+                    'stovetop', 'grill', 'dessert', 'gluten-free', 
+                    'microwave', 'keto', 'raw', 'comfort food', 
+                    'drinks', 'alcoholic', 'non-alcoholic']
+        unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 
+                    'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 
+                    'quart (qt)', 'gallon (gal)', 'stick', 
+                    'milliliter (mL)', 'liter (L)', 'gram (g)', 
+                    'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
+                    'whole', 'slice', 'piece']
         
         if request.method == 'GET':
-            return render_template('insert.html', page_title="Insert", user=username, ingredients=ingredientList, units=unitList, tags=tagList)
+            return render_template('insert.html', page_title="Insert", user=username, 
+                                    ingredients=ingredientList, units=unitList, tags=tagList)
         else: 
             title = request.form['recipe-title'] 
             instructions = request.form['recipe-instructions']
             cook_time = request.form['recipe-time']
             servings = request.form['recipe-servings']
             selectedTagList = request.form.getlist('recipe-tags')
-            tags = ""
-            for i in range(len(selectedTagList)): 
-                tags += selectedTagList[i]
-                if i < len(selectedTagList)-1: 
-                    tags += ", "
+            tags = ", ".join(selectedTagList)
 
             try:
                 image = request.files['recipe-image']
@@ -67,12 +74,13 @@ def insert():
             except: 
                 filename = None
 
+            # getting the amounts of each ingredient
             amounts = {}
-            print(request.form.keys())
             i = 1
+            # determine how many ingredient form fields were filled in
             while ('ingredient' + str(i)) in request.form.keys(): 
                 if request.form['ingredient' + str(i)] != "":  
-                    print(request.form['ingredient' + str(i)])
+                    # create string variables in a dictionary for each enumerated form element
                     amounts[str(i)] = {}
                     amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
                     amounts[str(i)]['amount'] = request.form['amount' + str(i)]
@@ -85,9 +93,6 @@ def insert():
             last_updated_date = date.today()
 
             error = []
-            # check for duplicated title
-            if not helper.check_title(conn, title): 
-                error.append("Sorry, this recipe title already exists. Please choose another.")
             if len(title) == 0: 
                 error.append("Please enter a recipe title.")
             if len(instructions) == 0: 
@@ -101,23 +106,38 @@ def insert():
             if len(error) == 0: 
                 conn = dbi.connect()
                 uid = session['uid']
-                # this query will return rid, if successful
-                added = helper.insert_recipe(conn,title,filename,cook_time,int(servings),instructions,tags,post_date,last_updated_date,uid,amounts)
+                try: 
+                    # this query will return rid, if successful
+                    rid = None
+                    added = helper.insert_update_recipe(conn,title,filename,cook_time,int(servings),
+                                                instructions,tags,post_date,last_updated_date,
+                                                uid,amounts,rid)
                 
-                # if the python/sql insert function was successful, thus returning a string 'success'
-                if added != "Error uploading recipe.":
-                    flash('Form submission successful.')
-                    return redirect(url_for('recipe', recipe_id = added))
-                else: #probably a duplicate error
-                    error.append(added)
-                    return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)
+                    # if the python/sql insert function was successful
+                    if type(added) != str:
+                        flash('Form submission successful.')
+                        return redirect(url_for('recipe', recipe_id = added))
+                    else: 
+                        error.append(added)
+                        return render_template('insert.html', page_title="Insert", 
+                                                user=username, error=error, 
+                                                ingredients=ingredientList, units=unitList, 
+                                                tags=tagList)
+                except: 
+                    error.append("Error uploading recipe. Please try again.")
+                    return render_template('insert.html', page_title="Insert", 
+                                                user=username, error=error, 
+                                                ingredients=ingredientList, units=unitList, 
+                                                tags=tagList)
+                
             # if there are error messages
             else: 
-                return render_template('insert.html', page_title="Insert", user=username, error=error, ingredients=ingredientList, units=unitList, tags=tagList)      
+                return render_template('insert.html', page_title="Insert", user=username, 
+                                        error=error, ingredients=ingredientList, 
+                                        units=unitList, tags=tagList)      
 
 @app.route('/pic/<filename>')
 def pic(filename):
-    print(filename)
     if filename == None: 
         return "No image found"
     return send_from_directory(app.config['UPLOADS'],filename)
@@ -139,10 +159,20 @@ def update(rid):
             ingredients = helper.get_recipe_ingredients(conn, rid)
 
             ingredientList = helper.get_ingredients(conn)
-            tagList = ['breakfast', 'lunch', 'dinner', 'snack', 'vegan', 'vegetarian', 'pescatarian', 'quick meals', 'bake', 'one-pan meal', 'stovetop', 'grill', 'dessert', 'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 'drinks', 'alcoholic', 'non-alcoholic']
-            unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 'quart (qt)', 'gallon (gal)', 'stick', 'milliliter (mL)', 'liter (L)', 'gram (g)', 'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 'whole', 'slice', 'piece']
+            tagList = ['breakfast', 'lunch', 'dinner', 'snack', 
+                        'vegan', 'vegetarian', 'pescatarian', 
+                        'quick meals', 'bake', 'one-pan meal', 
+                        'stovetop', 'grill', 'dessert', 'gluten-free', 
+                        'microwave', 'keto', 'raw', 'comfort food', 
+                        'drinks', 'alcoholic', 'non-alcoholic']
+            unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 
+                        'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 
+                        'quart (qt)', 'gallon (gal)', 'stick', 
+                        'milliliter (mL)', 'liter (L)', 'gram (g)', 
+                        'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
+                        'whole', 'slice', 'piece']
         except:
-            return render_template('error.html')
+            return render_template('error.html', page_title="Error")
 
         # if post
         if request.method == 'POST':
@@ -152,12 +182,7 @@ def update(rid):
             cook_time = request.form['recipe-time']
             servings = request.form['recipe-servings']
             selectedTagList = request.form.getlist('recipe-tags')
-            tags = ""
-            for i in range(len(selectedTagList)): 
-                tags += selectedTagList[i]
-                if i < len(selectedTagList)-1: 
-                    tags += ", "
-
+            tags = ", ".join(selectedTagList)
             try:
                 image = request.files['recipe-image']
                 ext = image.filename.split('.')[-1]
@@ -166,12 +191,13 @@ def update(rid):
                 image.save(pathname)
             except: 
                 filename = None
-
+            # getting the amounts of each ingredient
             amounts = {}
-            
             i = 1
-            while ('ingredient' + str(i)) in request.form.keys():
+            # determine how many ingredient form fields were filled in
+            while ('ingredient' + str(i)) in request.form.keys(): 
                 if request.form['ingredient' + str(i)] != "":  
+                    # create string variables in a dictionary for each enumerated form element
                     amounts[str(i)] = {}
                     amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
                     amounts[str(i)]['amount'] = request.form['amount' + str(i)]
@@ -181,7 +207,6 @@ def update(rid):
                     break
 
             last_updated_date = date.today()
-
             error = []
             # check for duplicated title
             if not helper.check_title(conn, title, rid): 
@@ -192,21 +217,20 @@ def update(rid):
                 error.append("Please enter recipe instructions.")
             if len(amounts) == 0: 
                 error.append("Please enter at least one ingredient.")
-            
             # if there are no error messages
             if len(error) == 0: 
                 conn = dbi.connect()
                 uid = session['uid']
-
-                # this query will return rid, if successful
-                helper.update_recipe(conn,rid,title,filename,cook_time,int(servings),instructions,tags,last_updated_date,amounts)
-                flash('Form submission successful.')
-
-                return redirect(url_for('recipe', recipe_id = rid))
-                
-            # if there are error messages
-            else: 
-                return render_template('update.html', 
+                try: 
+                    post_date=None
+                    # this query will return rid, if successful
+                    helper.insert_update_recipe(conn,title,filename,cook_time,int(servings),
+                                                instructions,tags,post_date,last_updated_date,
+                                                uid,amounts,rid)
+                    flash('Form submission successful.')
+                    return redirect(url_for('recipe', recipe_id = rid))
+                except: 
+                    return render_template('update.html', 
                                 page_title="Update", 
                                 error=error,
                                 user=username, 
@@ -215,8 +239,19 @@ def update(rid):
                                 ingredients=ingredients, 
                                 ingredientList=ingredientList, 
                                 units=unitList, 
-                                tags=tagList
-                                )
+                                tags=tagList)
+            # there are error messages
+            else: 
+                return render_template('update.html', 
+                                        page_title="Update", 
+                                        error=error,
+                                        user=username, 
+                                        rid=rid, 
+                                        recipe=recipe,
+                                        ingredients=ingredients, 
+                                        ingredientList=ingredientList, 
+                                        units=unitList, 
+                                        tags=tagList)      
 
         # if get
         else:
@@ -234,7 +269,7 @@ def update(rid):
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to update a recipe.']
-        return render_template('index.html', error=error)
+        return render_template('index.html', page_title="RMD", error=error)
 
 @app.route('/delete/<int:rid>', methods=['POST'])
 def delete(rid):
@@ -246,11 +281,12 @@ def delete(rid):
 
         # delete old image
         oldimage = helper.get_recipe_image_path(conn, rid)
-        pathname = os.path.join(app.config['UPLOADS'],oldimage)
-        if os.path.exists(pathname):
-            os.remove(pathname)
-        else:
-            print("The file does not exist")
+        if oldimage != None: 
+            pathname = os.path.join(app.config['UPLOADS'],oldimage)
+            if os.path.exists(pathname):
+                os.remove(pathname)
+            else:
+                print("The file does not exist")
 
         # flash confirmation and prompt for button resubmission
         deleted = helper.delete_recipe(conn, rid)
@@ -258,14 +294,14 @@ def delete(rid):
         if deleted == -1:
             flash("Error deleting recipe. Try again.")
         else:
-            flash("Recipe {} deleted ToT".format(rid))
+            flash("Recipe {} deleted.".format(rid))
 
-        return redirect(url_for('index'))
+        return redirect(url_for('index', page_title="RMD"))
 
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to delete a recipe.']
-        return render_template('index.html', error=error)
+        return render_template('index.html', page_title="RMD", error=error)
         
 
 @app.route('/search/', methods=['GET', 'POST'])
@@ -274,7 +310,8 @@ def search():
     conn = dbi.connect()
     ingredientList = helper.get_ingredients(conn)
     if request.method == 'GET':
-        return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList)
+        return render_template('search.html', page_title="Search", 
+                                user=username, ingredients=ingredientList)
     else:
         #title input
         title = request.form['recipe-title'] 
@@ -291,13 +328,14 @@ def search():
         #set search results if title input exists
         if len(title) > 0: 
             searchResults = helper.search_titles(conn,title)
-            #set search results if selected ingredient input exists
+        #set search results if selected ingredient input exists
         elif len(selectedIngredients) > 0:
             searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
 
-            #set search results if both title and ingredients input exist
+        #set search results if both title and ingredients input exist
         if len(title) > 0 and len(selectedIngredients) > 0:
-            #merging search results to avoid repetition
+            #merging search results to use the helper search function with 
+            #both title and ingredients
             title_searchResults = helper.search_titles(conn,title)
             ingredient_searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
             searchResults = helper.search_title_ingredients(conn, title_searchResults,ingredient_searchResults)
@@ -307,10 +345,12 @@ def search():
             searchResults = []
         if len(searchResults) < 1:
             error = ['No recipes matched your search.']
-            return render_template('search.html', page_title="Search", user=username, error=error,ingredients=ingredientList)
+            return render_template('search.html', page_title="Search", user=username, 
+                                    error=error,ingredients=ingredientList)
         #if there are results then display them
         else:
-            return render_template('search.html', page_title="Search", user=username, ingredients=ingredientList, searchResults=searchResults)       
+            return render_template('search.html', page_title="Search", user=username, 
+                                    ingredients=ingredientList, searchResults=searchResults)       
 
     error = []
     if len(title) == 0 and len(selectedIngredients) == 0:
@@ -318,9 +358,10 @@ def search():
     
     # if there are error messages
     else:
-        return render_template('search.html', page_title="Search", user=username, error=error, ingredients=ingredientList)
+        return render_template('search.html', page_title="Search", user=username, 
+                                error=error, ingredients=ingredientList)
     
-    return render_template('search.html')
+    return render_template('search.html', error=error, page_title="Search")
 
 @app.route('/recipe/<int:recipe_id>')
 def recipe(recipe_id):
@@ -332,15 +373,19 @@ def recipe(recipe_id):
         ingredients = helper.get_recipe_ingredients(conn, recipe_id)
     except:
         error = ['Sorry, the recipe you are looking for is not in the database.']
-        return render_template('index.html', error=error)
-    # tags = recipe.tag.split(",")
+        return render_template('index.html', page_title="RMD", error=error)
 
     instructions = recipe['instructions'].split('. ')
 
     for instruction in instructions:
-        if (instruction.strip()).isdigit()  or instruction == '':
+        if (instruction.strip()).isdigit() or instruction == '':
             instructions.remove(instruction)
-    return render_template('recipe.html', page_title="Recipe", instructions = instructions, user=username, uid=uid, recipe = recipe, filename=recipe['image_path'], creator = creator, ingredients = ingredients, recipe_id = recipe_id)
+    return render_template('recipe.html', 
+                            instructions = instructions, 
+                            user=username, uid=uid, recipe = recipe, 
+                            filename=recipe['image_path'], page_title="Recipe",
+                            creator = creator, ingredients = ingredients, 
+                            recipe_id = recipe_id)
 
 @app.route('/profile/')
 def profile():
@@ -353,7 +398,7 @@ def profile():
     else:
         # flash, cannot update recipe without being logged in
         error = ['Please log in to access your profile page.']
-        return render_template('index.html', error=error)
+        return render_template('index.html', page_title="RMD", error=error)
     
 @app.route('/login/', methods=['GET', 'POST'])
 def login():
@@ -371,7 +416,7 @@ def login():
             passwd2 = request.form.get('password2')
             if passwd != passwd2:
                 flash('passwords do not match')
-                return redirect( url_for('index'))
+                return redirect( url_for('index', page_title="RMD"))
             hashed = bcrypt.hashpw(passwd.encode('utf-8'),
                                 bcrypt.gensalt())
             stored = hashed.decode('utf-8')
@@ -386,7 +431,7 @@ def login():
 
             except Exception as err:
                 flash('That username is taken: {}'.format(repr(err)))
-                return redirect(url_for('index'))
+                return redirect(url_for('index', page_title="RMD"))
 
             curs.execute('select last_insert_id()')
             row = curs.fetchone()
@@ -403,7 +448,6 @@ def login():
             username = request.form.get('username')
             passwd = request.form.get('password')
 
-            print(username)
             conn = dbi.connect()
             row = helper.validate_login(conn, username)
             if row is None:
@@ -423,7 +467,7 @@ def login():
                 return redirect( url_for('index', page_title="RMD", user=username) )
             else:
                 flash('login incorrect. Try again or join')
-                return redirect( url_for('login'))
+                return redirect( url_for('login', page_title="Login/Register"))
 
 @app.route('/logout/')
 def logout():
@@ -436,7 +480,7 @@ def logout():
         return redirect(url_for('index'))
     else:
         flash('you are not logged in. Please login or join')
-        return redirect( url_for('index') )
+        return redirect( url_for('index', page_title="RMD") )
 
 @app.before_first_request
 def init_db():

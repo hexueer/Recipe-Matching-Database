@@ -125,6 +125,13 @@ label {
     padding: 3px;
 }
 
+/* making ingredient insert form labels less dramatic */
+.smallLabel {
+    border: none !important;
+    background-color: transparent !important;
+    color: var(--color-dark);
+}
+
 legend {
     font-weight: bold;
     padding: 5px;

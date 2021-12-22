@@ -5,7 +5,7 @@
     <meta charset='utf-8'>
     <!-- for mobile-friendly pages -->
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name=author content="Ivy Ho">
+    <meta name=author content="Ivy Ho, Olivia Giandrea, Cherie Wang, Alex Chin">
     
     <title>{{ page_title }}</title>
     <link rel='stylesheet' href="{{url_for('static', filename = 'style.css')}}">
@@ -18,7 +18,7 @@
         {% block nav %}
         <nav>
             <ul>
-                <img src="{{url_for('pic', filename='logo.png')}}" alt="logo"/>
+                <img src="{{url_for('pic', filename='logo.png')}}" alt="RMDlogo"/>
                 <li><a href="{{url_for('index')}}">Home</a></li>
                 <li><a href="{{url_for('insert')}}">Insert a Recipe</a></li>
                 <li><a href="{{url_for('search')}}">Search for a Recipe</a></li>

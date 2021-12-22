@@ -41,7 +41,7 @@
                                 <td class="right"><input id="recipe-servings" type="text" name="recipe-servings"></td>
                             </tr>
                             <tr>
-                                <td class="left"><label for="ingredient1">Ingredients: </label></td>
+                                <td class="left"><label for="ingredients-table">Ingredients: </label></td>
                                 <td class="right">
                                     <p style="align-self: center;">Please insert amounts as whole numbers or decimals</p>
                                     <table role="presentation" class="table" id='ingredients-table' style="margin-bottom: 1em">
@@ -57,15 +57,21 @@
                                             {% for n in range(1, 11) %}
                                                 <tr>
                                                     <td>
-                                                        <select class="form-select" name="ingredient{{n}}">
+                                                        <label for="ingredient{{n}}" class="smallLabel">Ingredient{{n}}: </label>
+                                                        <select class="form-select" id="ingredient{{n}}" name="ingredient{{n}}">
                                                             <option value="">Select an Ingredient</option>
                                                             {% for ingredient in ingredients %}
                                                             <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
                                                             {% endfor %}
                                                         </select>
                                                     </td>
-                                                    <td><input type="text" name="amount{{n}}"></td>
-                                                    <td><select class="form-select" name="unit{{n}}">
+                                                    <td>
+                                                        <label for="amount{{n}}" class="smallLabel">Amount{{n}}: </label>
+                                                        <input type="text" id="amount{{n}}" name="amount{{n}}">
+                                                    </td>
+                                                    <td>
+                                                        <label for="unit{{n}}" class="smallLabel">Unit{{n}}: </label>
+                                                        <select class="form-select" id="unit{{n}}" name="unit{{n}}">
                                                         <option value="">Select a Unit</option>
                                                         {% for unit in units %}
                                                         <option value="{{ unit }}">{{ unit }}</option>
