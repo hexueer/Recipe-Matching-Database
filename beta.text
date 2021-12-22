@@ -1,0 +1,2325 @@
+====================== app.py =====================
+from flask import (Flask, render_template, make_response, url_for, request,
+                   redirect, flash, session, send_from_directory, jsonify)
+from werkzeug.utils import secure_filename
+app = Flask(__name__)
+
+import cs304dbi as dbi
+
+import random
+import helper
+import bcrypt
+import os
+from datetime import date
+
+app.secret_key = 'your secret here'
+# replace that with a random key
+app.secret_key = ''.join([ random.choice(('ABCDEFGHIJKLMNOPQRSTUVXYZ' +
+                                          'abcdefghijklmnopqrstuvxyz' +
+                                          '0123456789'))
+                           for i in range(20) ])
+
+# This gets us better error messages for certain common request errors
+app.config['TRAP_BAD_REQUEST_ERRORS'] = True
+
+# new for file upload
+app.config['UPLOADS'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 1*1024*1024 # 1 MB
+
+@app.route('/')
+def index():
+    username = session.get('username','')
+    return render_template('index.html', page_title="RMD", user=username)
+
+@app.route('/insert/', methods=['GET', 'POST'])
+def insert():
+    # logged in?
+    if 'username' not in session:
+        # flash, cannot insert recipe without being logged in
+        error = ['Please log in to insert a recipe.']
+        return render_template('index.html', page_title="RMD", error=error)
+    else: 
+        username = session.get('username')
+        conn = dbi.connect()
+        ingredientList = helper.get_ingredients(conn)
+        tagList = ['breakfast', 'lunch', 'dinner', 'snack', 
+                    'vegan', 'vegetarian', 'pescatarian', 
+                    'quick meals', 'bake', 'one-pan meal', 
+                    'stovetop', 'grill', 'dessert', 'gluten-free', 
+                    'microwave', 'keto', 'raw', 'comfort food', 
+                    'drinks', 'alcoholic', 'non-alcoholic']
+        unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 
+                    'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 
+                    'quart (qt)', 'gallon (gal)', 'stick', 
+                    'milliliter (mL)', 'liter (L)', 'gram (g)', 
+                    'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
+                    'whole', 'slice', 'piece']
+        
+        if request.method == 'GET':
+            return render_template('insert.html', page_title="Insert", user=username, 
+                                    ingredients=ingredientList, units=unitList, tags=tagList)
+        else: 
+            title = request.form['recipe-title'] 
+            instructions = request.form['recipe-instructions']
+            cook_time = request.form['recipe-time']
+            servings = request.form['recipe-servings']
+            selectedTagList = request.form.getlist('recipe-tags')
+            tags = ", ".join(selectedTagList)
+
+            try:
+                image = request.files['recipe-image']
+                ext = image.filename.split('.')[-1]
+                filename = secure_filename('{}.{}'.format(title.replace(" ", ""), ext))
+                pathname = os.path.join(app.config['UPLOADS'],filename)
+                image.save(pathname)
+            except: 
+                filename = None
+
+            # getting the amounts of each ingredient
+            amounts = {}
+            i = 1
+            # determine how many ingredient form fields were filled in
+            while ('ingredient' + str(i)) in request.form.keys(): 
+                if request.form['ingredient' + str(i)] != "":  
+                    # create string variables in a dictionary for each enumerated form element
+                    amounts[str(i)] = {}
+                    amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
+                    amounts[str(i)]['amount'] = request.form['amount' + str(i)]
+                    amounts[str(i)]['unit'] = request.form['unit' + str(i)]
+                    i += 1
+                else: 
+                    break
+
+            post_date = date.today()
+            last_updated_date = date.today()
+
+            error = []
+            if len(title) == 0: 
+                error.append("Please enter a recipe title.")
+            if len(instructions) == 0: 
+                error.append("Please enter recipe instructions.")
+            if len(amounts) == 0: 
+                error.append("Please enter at least one ingredient.")
+            if len(servings) == 0: 
+                error.append("Please enter serving sizes.")
+            
+            # if there are no error messages
+            if len(error) == 0: 
+                conn = dbi.connect()
+                uid = session['uid']
+                try: 
+                    # this query will return rid, if successful
+                    rid = None
+                    added = helper.insert_update_recipe(conn,title,filename,cook_time,int(servings),
+                                                instructions,tags,post_date,last_updated_date,
+                                                uid,amounts,rid)
+                
+                    # if the python/sql insert function was successful
+                    if type(added) != str:
+                        flash('Form submission successful.')
+                        return redirect(url_for('recipe', recipe_id = added))
+                    else: 
+                        error.append(added)
+                        return render_template('insert.html', page_title="Insert", 
+                                                user=username, error=error, 
+                                                ingredients=ingredientList, units=unitList, 
+                                                tags=tagList)
+                except: 
+                    error.append("Error uploading recipe. Please try again.")
+                    return render_template('insert.html', page_title="Insert", 
+                                                user=username, error=error, 
+                                                ingredients=ingredientList, units=unitList, 
+                                                tags=tagList)
+                
+            # if there are error messages
+            else: 
+                return render_template('insert.html', page_title="Insert", user=username, 
+                                        error=error, ingredients=ingredientList, 
+                                        units=unitList, tags=tagList)      
+
+@app.route('/pic/<filename>')
+def pic(filename):
+    if filename == None: 
+        return "No image found"
+    return send_from_directory(app.config['UPLOADS'],filename)
+
+@app.route('/update/<int:rid>', methods=['GET', 'POST'])
+def update(rid):
+    # logged in?
+    if 'username' in session:
+        username = session.get('username')
+        uid = session.get('uid')
+        conn = dbi.connect()
+        
+        try:
+            recipe, creator = helper.recipe_lookup(conn, rid)
+            # just in case html falls through
+            if uid != creator['uid']:
+                flash("You are not the author of this page!")
+                return redirect(url_for('recipe', recipe_id = rid))
+            ingredients = helper.get_recipe_ingredients(conn, rid)
+
+            ingredientList = helper.get_ingredients(conn)
+            tagList = ['breakfast', 'lunch', 'dinner', 'snack', 
+                        'vegan', 'vegetarian', 'pescatarian', 
+                        'quick meals', 'bake', 'one-pan meal', 
+                        'stovetop', 'grill', 'dessert', 'gluten-free', 
+                        'microwave', 'keto', 'raw', 'comfort food', 
+                        'drinks', 'alcoholic', 'non-alcoholic']
+            unitList = ['pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 
+                        'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 
+                        'quart (qt)', 'gallon (gal)', 'stick', 
+                        'milliliter (mL)', 'liter (L)', 'gram (g)', 
+                        'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
+                        'whole', 'slice', 'piece']
+        except:
+            return render_template('error.html', page_title="Error")
+
+        # if post
+        if request.method == 'POST':
+            # update recipe
+            title = request.form['recipe-title'] 
+            instructions = request.form['recipe-instructions']
+            cook_time = request.form['recipe-time']
+            servings = request.form['recipe-servings']
+            selectedTagList = request.form.getlist('recipe-tags')
+            tags = ", ".join(selectedTagList)
+            try:
+                image = request.files['recipe-image']
+                ext = image.filename.split('.')[-1]
+                filename = secure_filename('{}.{}'.format(title.replace(" ", ""), ext))
+                pathname = os.path.join(app.config['UPLOADS'],filename)
+                image.save(pathname)
+            except: 
+                filename = None
+            # getting the amounts of each ingredient
+            amounts = {}
+            i = 1
+            # determine how many ingredient form fields were filled in
+            while ('ingredient' + str(i)) in request.form.keys(): 
+                if request.form['ingredient' + str(i)] != "":  
+                    # create string variables in a dictionary for each enumerated form element
+                    amounts[str(i)] = {}
+                    amounts[str(i)]['ingredient'] = request.form['ingredient' + str(i)]
+                    amounts[str(i)]['amount'] = request.form['amount' + str(i)]
+                    amounts[str(i)]['unit'] = request.form['unit' + str(i)]
+                    i += 1
+                else: 
+                    break
+
+            last_updated_date = date.today()
+            error = []
+            # check for duplicated title
+            if not helper.check_title(conn, title, rid): 
+                error.append("Sorry, this recipe title already exists. Please choose another.")
+            if len(title) == 0: 
+                error.append("Please enter a recipe title.")
+            if len(instructions) == 0: 
+                error.append("Please enter recipe instructions.")
+            if len(amounts) == 0: 
+                error.append("Please enter at least one ingredient.")
+            # if there are no error messages
+            if len(error) == 0: 
+                conn = dbi.connect()
+                uid = session['uid']
+                try: 
+                    post_date=None
+                    # this query will return rid, if successful
+                    helper.insert_update_recipe(conn,title,filename,cook_time,int(servings),
+                                                instructions,tags,post_date,last_updated_date,
+                                                uid,amounts,rid)
+                    flash('Form submission successful.')
+                    return redirect(url_for('recipe', recipe_id = rid))
+                except: 
+                    return render_template('update.html', 
+                                page_title="Update", 
+                                error=error,
+                                user=username, 
+                                rid=rid, 
+                                recipe=recipe,
+                                ingredients=ingredients, 
+                                ingredientList=ingredientList, 
+                                units=unitList, 
+                                tags=tagList)
+            # there are error messages
+            else: 
+                return render_template('update.html', 
+                                        page_title="Update", 
+                                        error=error,
+                                        user=username, 
+                                        rid=rid, 
+                                        recipe=recipe,
+                                        ingredients=ingredients, 
+                                        ingredientList=ingredientList, 
+                                        units=unitList, 
+                                        tags=tagList)      
+
+        # if get
+        else:
+            return render_template('update.html', 
+                                    page_title="Update", 
+                                    user=username, 
+                                    rid=rid, 
+                                    recipe=recipe,
+                                    ingredients=ingredients, 
+                                    ingredientList=ingredientList, 
+                                    units=unitList, 
+                                    tags=tagList
+                                    )
+
+    else:
+        # flash, cannot update recipe without being logged in
+        error = ['Please log in to update a recipe.']
+        return render_template('index.html', page_title="RMD", error=error)
+
+@app.route('/delete/<int:rid>', methods=['POST'])
+def delete(rid):
+    # logged in?
+    if 'username' in session:
+        username = session.get('username')
+        uid = session.get('uid')
+        conn = dbi.connect()
+
+        # delete old image
+        oldimage = helper.get_recipe_image_path(conn, rid)
+        if oldimage != None: 
+            pathname = os.path.join(app.config['UPLOADS'],oldimage)
+            if os.path.exists(pathname):
+                os.remove(pathname)
+            else:
+                print("The file does not exist")
+
+        # flash confirmation and prompt for button resubmission
+        deleted = helper.delete_recipe(conn, rid)
+        # returns -1 if deletion affected 0 rows
+        if deleted == -1:
+            flash("Error deleting recipe. Try again.")
+        else:
+            flash("Recipe {} deleted.".format(rid))
+
+        return redirect(url_for('index'))
+
+    else:
+        # flash, cannot update recipe without being logged in
+        error = ['Please log in to delete a recipe.']
+        return render_template('index.html', page_title="RMD", error=error)
+        
+
+@app.route('/search/', methods=['GET', 'POST'])
+def search():
+    username = session.get('username')
+    conn = dbi.connect()
+    ingredientList = helper.get_ingredients(conn)
+    if request.method == 'GET':
+        return render_template('search.html', page_title="Search", 
+                                user=username, ingredients=ingredientList)
+    else:
+        #title input
+        title = request.form['recipe-title'] 
+        #list of user selected ingredients
+        selectedIngredients = request.form.getlist('recipe-ingredients')
+        #parse selected ingredients
+        selectedIngredients = selectedIngredients[0].strip(',').split(',')
+        #ensure that an empty string is not considered as input
+        if len(selectedIngredients) ==1:
+            if selectedIngredients[0] == "":
+                selectedIngredients = []
+
+        #Search by both title and ingredients
+        #set search results if title input exists
+        if len(title) > 0: 
+            searchResults = helper.search_titles(conn,title)
+        #set search results if selected ingredient input exists
+        elif len(selectedIngredients) > 0:
+            searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
+
+        #set search results if both title and ingredients input exist
+        if len(title) > 0 and len(selectedIngredients) > 0:
+            #merging search results to use the helper search function with 
+            #both title and ingredients
+            title_searchResults = helper.search_titles(conn,title)
+            ingredient_searchResults = helper.search_ingredients(conn,helper.get_iid(conn,selectedIngredients))
+            searchResults = helper.search_title_ingredients(conn, title_searchResults,ingredient_searchResults)
+
+        #if recipes were not found
+        if len(title) == 0 and len(selectedIngredients) == 0:
+            searchResults = []
+        if len(searchResults) < 1:
+            error = ['No recipes matched your search.']
+            return render_template('search.html', page_title="Search", user=username, 
+                                    error=error,ingredients=ingredientList)
+        #if there are results then display them
+        else:
+            return render_template('search.html', page_title="Search", user=username, 
+                                    ingredients=ingredientList, searchResults=searchResults)       
+
+    error = []
+    if len(title) == 0 and len(selectedIngredients) == 0:
+        error.append("Please enter either a recipe title or select ingredients.")
+    
+    # if there are error messages
+    else:
+        return render_template('search.html', page_title="Search", user=username, 
+                                error=error, ingredients=ingredientList)
+    
+    return render_template('search.html', error=error, page_title="Search")
+
+@app.route('/recipe/<int:recipe_id>')
+def recipe(recipe_id):
+    conn = dbi.connect()
+    username = session.get('username')
+    uid = session.get('uid')
+    try:
+        recipe, creator = helper.recipe_lookup(conn, recipe_id)
+        ingredients = helper.get_recipe_ingredients(conn, recipe_id)
+    except:
+        error = ['Sorry, the recipe you are looking for is not in the database.']
+        return render_template('index.html', page_title="RMD", error=error)
+
+    instructions = recipe['instructions'].split('. ')
+
+    for instruction in instructions:
+        if (instruction.strip()).isdigit() or instruction == '':
+            instructions.remove(instruction)
+    return render_template('recipe.html', 
+                            instructions = instructions, 
+                            user=username, uid=uid, recipe = recipe, 
+                            filename=recipe['image_path'], page_title="Recipe",
+                            creator = creator, ingredients = ingredients, 
+                            recipe_id = recipe_id)
+
+@app.route('/profile/')
+def profile():
+    conn = dbi.connect()
+    if 'username' in session:
+        username = session.get('username')
+        recipes = helper.get_user_recipes(conn, username)
+        # profile code
+        return render_template('profile.html', user = username, recipes = recipes, page_title = "Profile")
+    else:
+        # flash, cannot update recipe without being logged in
+        error = ['Please log in to access your profile page.']
+        return render_template('index.html', page_title="RMD", error=error)
+    
+@app.route('/login/', methods=['GET', 'POST'])
+def login():
+    # render login/register page first
+    if request.method == 'GET':
+        return render_template('login.html', page_title="Login/Register")
+
+    else:
+        # if first-time user
+        if request.form['submit'] == 'register':
+            fullname = request.form.get('fullname')
+            email = request.form.get('email')
+            username = request.form.get('username')
+            passwd = request.form.get('password')
+            passwd2 = request.form.get('password2')
+            if passwd != passwd2:
+                flash('passwords do not match')
+                return redirect( url_for('index'))
+            hashed = bcrypt.hashpw(passwd.encode('utf-8'),
+                                bcrypt.gensalt())
+            stored = hashed.decode('utf-8')
+
+            conn = dbi.connect()
+            curs = dbi.cursor(conn)
+            try:
+                curs.execute('''INSERT INTO user(name,email,username,hashed)
+                                VALUES(%s, %s, %s, %s)''',
+                            [fullname, email, username, stored])
+                conn.commit()
+
+            except Exception as err:
+                flash('That username is taken: {}'.format(repr(err)))
+                return redirect(url_for('index'))
+
+            curs.execute('select last_insert_id()')
+            row = curs.fetchone()
+            uid = row[0]
+            flash('FYI, you were issued UID {}'.format(uid))
+            session['username'] = username
+            session['uid'] = uid
+            session['logged_in'] = True
+            session['visits'] = 1
+            return redirect( url_for('index', user=username) )
+
+        # else login
+        else:
+            username = request.form.get('username')
+            passwd = request.form.get('password')
+
+            conn = dbi.connect()
+            row = helper.validate_login(conn, username)
+            if row is None:
+                # Same response as wrong password
+                flash('login incorrect. Try again or join')
+                return redirect( url_for('login'))
+            stored = row['hashed']
+            hashed2 = bcrypt.hashpw(passwd.encode('utf-8'),
+                                    stored.encode('utf-8'))
+            hashed2_str = hashed2.decode('utf-8')
+            if hashed2_str == stored:
+                flash('successfully logged in as '+username)
+                session['username'] = username
+                session['uid'] = row['uid']
+                session['logged_in'] = True
+                session['visits'] = 1
+                return redirect( url_for('index', user=username) )
+            else:
+                flash('login incorrect. Try again or join')
+                return redirect( url_for('login'))
+
+@app.route('/logout/')
+def logout():
+    if 'username' in session:
+        username = session['username']
+        session.pop('username')
+        session.pop('uid')
+        session.pop('logged_in')
+        flash('You are logged out')
+        return redirect(url_for('index'))
+    else:
+        flash('you are not logged in. Please login or join')
+        return redirect( url_for('index') )
+
+@app.before_first_request
+def init_db():
+    dbi.cache_cnf()
+    db_to_use = 'recipes_db' 
+    dbi.use(db_to_use)
+    print('will connect to {}'.format(db_to_use))
+
+if __name__ == '__main__':
+    import sys, os
+    if len(sys.argv) > 1:
+        # arg, if any, is the desired port number
+        port = int(sys.argv[1])
+        assert(port>1024)
+    else:
+        port = os.getuid()
+    app.debug = True
+    app.run('0.0.0.0',port)
+
+====================== helper.py =====================
+import cs304dbi as dbi
+
+def getUID(conn, username):
+    '''Takes a username and returns the matching uid in 
+       the USER table'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''SELECT uid
+                    FROM user
+                    WHERE username = %s''',
+                    [username])
+    return curs.fetchone()['uid']
+
+def insert_update_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts,rid): 
+    '''inserts a recipe into the recipes table
+       using given params. 
+       if the recipe already exists, we then only update 
+       a row with new values (may be equivalent) for each 
+       attribute in the Recipe table for a specific rid, 
+       will ignore imagepath if none'''
+    try:
+        curs = dbi.dict_cursor(conn)
+
+        # if we are inserting instead of updating
+        if rid == None: 
+            try: 
+                curs.execute('''insert into recipe(title,image_path,cook_time,
+                                                servings,instructions,tag,
+                                                post_date,last_updated_date,uid)
+                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
+                                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
+                conn.commit()
+
+                try: 
+                    curs.execute('select last_insert_id()')
+                    rid = curs.fetchone()
+                    # insert the amounts into uses
+                    for a in amounts:
+                        curs = dbi.dict_cursor(conn)
+                        curs.execute('''
+                            insert into uses(rid, iid, amount, measurement_unit)
+                            values (%s, %s, %s, %s)''', 
+                                    [rid['last_insert_id()'], amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
+                        conn.commit()
+                    curs.close()
+                    return rid['last_insert_id()']
+                except:
+                    curs.close()
+                    error = "Error inserting recipe. Please try again."
+                    return error
+            except: 
+                # the title column is unique, so there was an attempted duplicated title
+                curs.close()
+                error = "Sorry, that title already exists. Please try another."
+                return error            
+        else: 
+            # if we are updating instead of inserting (rid is populated)
+            try: 
+                if imagepath == None or '.' not in imagepath:
+                    oldimage = None
+                    curs.execute('''update recipe set
+                                    title = %s, 
+                                    cook_time = %s, 
+                                    servings = %s, 
+                                    instructions = %s, 
+                                    tag = %s, 
+                                    last_updated_date = %s
+                                    where rid = %s''',
+                                    [title,cook_time,servings,instructions,tags,last_updated_date,rid])
+                else:
+                    curs.execute('''update recipe set
+                                    title = %s, 
+                                    image_path = %s, 
+                                    cook_time = %s, 
+                                    servings = %s, 
+                                    instructions = %s, 
+                                    tag = %s, 
+                                    last_updated_date = %s
+                                    where rid = %s''',
+                                    [title,imagepath,cook_time,servings,instructions,tags,last_updated_date,rid])
+                conn.commit()
+
+                # delete all previous ingredient entries
+                curs.execute('''delete from uses where rid = %s''',
+                                [rid])
+                conn.commit()
+
+                # insert the amounts into uses
+                for a in amounts:
+                    curs = dbi.dict_cursor(conn)
+                    curs.execute('''
+                        insert into uses(rid, iid, amount, measurement_unit)
+                        values (%s, %s, %s, %s)''', 
+                                [rid, amounts[a]['ingredient'], amounts[a]['amount'], amounts[a]['unit']]) 
+                    conn.commit()
+                curs.close()
+
+                return rid
+            except: 
+                curs.close()
+                error = "Error updating recipe entry. Please try again."
+                return error
+    except: 
+        curs.close()
+        error = "Error uploading recipe."
+        return error
+
+
+def check_title(conn, title, rid=None): 
+    '''selects titles from recipe like given title parameter
+       returns True if no matches found, false if another 
+       recipe already exists. 
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    try:
+        if rid == None:
+            curs.execute('''
+                select title from recipe
+                where title = %s''', 
+                        [title]) 
+        else:
+            curs.execute('''
+                select title from recipe
+                where title = %s and rid <> %s''', 
+                        [title, rid]) 
+        titles = curs.fetchall()
+        return len(titles) == 0
+    except: 
+        curs.close()
+        error = "Error checking for duplicate recipes."
+        return error
+
+def get_ingredients(conn): 
+    '''Returns all ingredient ids and names.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''
+        select * 
+        from ingredient
+        order by name''')
+    return curs.fetchall()
+
+def recipe_lookup(conn, rid):
+    '''Returns recipe data from given rid parameter.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select * from recipe 
+                    where rid = %s''', [rid])
+    recipe = curs.fetchone()
+
+    # if recipe does not exist
+    if recipe is None: 
+        return ("Recipe does not exist")
+
+    curs.execute('''select user.name, user.uid from user 
+                    join recipe using (uid)
+                    where recipe.rid = %s''', [rid])
+    user = curs.fetchone()
+    #get ingredients with name, amount and measurement_unit
+    return (recipe, user)
+
+def get_iid(conn, ingredients):
+    '''Takes one or more ingredient names and returns the matching iids in 
+       the ingredient table. We use fetchall() here in case users
+       enter more than one ingredient.'''
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'name = %s or ' * (len(ingredients)-1)
+    curs.execute('''SELECT iid
+                    FROM ingredient
+                    WHERE '''+ placeholders + '''name = %s
+                    ''',
+                    ingredients)
+    return curs.fetchall()
+
+def search_ingredients(conn,ingredients):
+    '''Searches by ingredients: finds if user search input 
+       matches recipes in recipe database using given params. 
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    placeholders = 'iid = %s or ' * (len(ingredients)-1)
+    all_ingredients = [i['iid'] for i in ingredients]
+
+    curs.execute('''select distinct uses.rid, recipe.image_path, recipe.title
+                    from uses inner join recipe using (rid)
+                    where ''' + placeholders + '''iid = %s
+                    '''
+                    ,all_ingredients)
+    return curs.fetchall()
+
+def search_titles(conn,title):
+    '''Searches by title: returns data of recipes with a 
+       title similar to the provided query, as a dictionary.
+    '''
+    curs = dbi.dict_cursor(conn)
+    title = "%" + title + "%"
+    curs.execute('''
+        select * 
+        from recipe
+        where title like %s''',
+                 [title])
+    return curs.fetchall()
+
+def search_title_ingredients(conn,titles,ingredients):
+    '''Searches and returns data of recipes with given titles and ingredients'''
+    curs = dbi.dict_cursor(conn)
+    # strip the list of titles of punctuations, etc. 
+    titles_formatted = [i['title'].strip() for i in titles]
+    # build the list of ingredients 
+    ingredients_formatted = [i['title'] for i in ingredients]
+
+    # select distinct titles and ingredients from sql table to search
+    keys = titles_formatted + ingredients_formatted
+    placeholders = 'title = %s or ' * (len(keys)-1)
+    curs.execute('''select distinct uses.rid, recipe.title, recipe.image_path
+                    from uses inner join recipe using (rid)
+                    where ''' + placeholders + '''title = %s
+                    '''
+                    ,keys)
+    return curs.fetchall()
+    
+def get_recipe_ingredients(conn, rid): 
+    '''Returns all ingredient ids and names.
+    ''' 
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select uses.rid, uses.iid, ingredient.name, uses.amount, uses.measurement_unit 
+                    from uses 
+                    inner join ingredient using (iid) 
+                    where rid = %s''', 
+                    [rid])
+    return curs.fetchall()
+
+# get recipes from username
+def get_user_recipes(conn, username):
+    '''Returns all the recipes from the given username'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select distinct recipe.rid, recipe.image_path, recipe.title
+                    from recipe inner join user using (uid) 
+                    where username = %s''', [username])
+    return curs.fetchall()
+
+def get_recipe_image_path(conn, rid):
+    '''Gets image_path from recipe table given rid.'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''select image_path 
+                    from recipe 
+                    where rid = %s''',
+                    [rid])
+    return curs.fetchone()['image_path']
+
+# delete recipe
+def delete_recipe(conn, rid):
+    '''Deletes a recipe from the Recipe table given a specific rid value
+        and deletes associated rows from the uses table as well.
+    '''
+    curs = dbi.dict_cursor(conn)
+    # delete all previous ingredient entries
+    curs.execute('''delete from uses where rid = %s''',
+                    [rid])
+    conn.commit()
+    # delete recipe entry
+    curs.execute('''delete from recipe where rid = %s''',
+                    [rid])
+    conn.commit()
+    
+    # gets num of affected rows by PREVIOUS STATEMENT
+    # we determine whether the deletion was successful in app.py
+    # depending on the number of rows that were affected
+    curs.execute('''SELECT ROW_COUNT()''')
+    return curs.fetchone()['ROW_COUNT()']
+
+def validate_login(conn, username):
+    '''Ensures valid login - takes a dbi connection and a 
+       username and checks if that username exists in the 
+       USER table, returns the matching row'''
+    curs = dbi.dict_cursor(conn)
+    curs.execute('''SELECT uid,hashed
+                    FROM user
+                    WHERE username = %s''',
+                    [username])
+    return curs.fetchone()
+
+# test functions here
+if __name__ == '__main__':
+    dbi.cache_cnf()   # defaults to ~/.my.cnf
+    dbi.use('recipes_db')
+    conn = dbi.connect()
+====================== P3_alpha_dump.sql =====================
+-- MySQL dump 10.14  Distrib 5.5.68-MariaDB, for Linux (x86_64)
+--
+-- Host: localhost    Database: recipes_db
+-- ------------------------------------------------------
+-- Server version	5.5.68-MariaDB
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `ingredient`
+--
+
+DROP TABLE IF EXISTS `ingredient`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `ingredient` (
+  `iid` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(30) NOT NULL,
+  PRIMARY KEY (`iid`)
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `ingredient`
+--
+
+LOCK TABLES `ingredient` WRITE;
+/*!40000 ALTER TABLE `ingredient` DISABLE KEYS */;
+INSERT INTO `ingredient` VALUES (1,'tomato'),(2,'bread'),(3,'basil'),(4,'mozzarella'),(5,'olive oil'),(6,'salt'),(7,'green scallion'),(8,'flour'),(9,'water'),(10,'oil'),(11,'chicken breast'),(12,'italian seasoning'),(13,'minced garlic'),(14,'red onion'),(15,'parmesan cheese'),(16,'brown sugar'),(17,'shrimp'),(18,'jalapenos'),(19,'garlic'),(20,'green onions'),(21,'frying oil'),(22,'butter'),(23,'pepper'),(24,'canned tuna'),(25,'celery'),(26,'cranberries');
+/*!40000 ALTER TABLE `ingredient` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `recipe`
+--
+
+DROP TABLE IF EXISTS `recipe`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `recipe` (
+  `rid` int(11) NOT NULL AUTO_INCREMENT,
+  `title` varchar(30) NOT NULL,
+  `instructions` text,
+  `cook_time` varchar(4) DEFAULT NULL,
+  `image_path` varchar(50) DEFAULT NULL,
+  `servings` int(11) DEFAULT NULL,
+  `tag` set('breakfast','lunch','dinner','snack','vegan','vegetarian','pescatarian','quick meals','bake','one-pan meal','stovetop','grill','dessert','gluten-free','microwave','keto','raw','comfort food','drinks','alcoholic','non-alcoholic') DEFAULT NULL,
+  `post_date` date DEFAULT NULL,
+  `last_updated_date` date DEFAULT NULL,
+  `uid` int(11) NOT NULL,
+  PRIMARY KEY (`rid`),
+  KEY `uid` (`uid`),
+  CONSTRAINT `recipe_ibfk_1` FOREIGN KEY (`uid`) REFERENCES `user` (`uid`)
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `recipe`
+--
+
+LOCK TABLES `recipe` WRITE;
+/*!40000 ALTER TABLE `recipe` DISABLE KEYS */;
+INSERT INTO `recipe` VALUES (1,'Caprese','Gather the ingredients. Using a serrated knife, slice an Italian sub roll in half lengthwise. Drizzle the inside with Italian \nextra-virgin olive oil and balsamic glaze. Add basil and tomato to one side and sprinkle with salt and pepper. Top with fresh \nmozzarella and close sandwich. Eat now or wrap tightly to enjoy later.','10','Caprese.jpg',1,'lunch','2021-12-13','2021-12-13',5),(2,'Scallion Pancake','Slowly add the hot water to the flour and mix it at the same time. Mix until the hot water is fully absorbed. Slowly add the cold water and continue mixing. Dough flakes should form once all the water is added. Start to press everything together with your hand. You can add a bit more water if there\'s too much dry flour left. Or you can slightly add a bit more flour if the dough is very sticky. Once you\'ve pressed all the dough flakes together, you should have little or no dry flour left. Knead about 5 mins until a tough dough is formed. Let rest for 20 mins, then knead for 1 minute to form a smooth dough. Make flour oil paste. Cut the dough into 6 pieces and work on the pieces one at a time. Use your hands to shape the dough into a rectangular shape. Roll the dough. The dough should form a very thin rectangle. Add the flour oil paste. Spread out the paste, leaving about 1” (2.5 cm) on both a long and a short end without the filling (your top and left). Add the green onion, concentrating most of it towards a long and short end with the filling. Gently roll up the dough, as tightly as possible. Press the air bubbles out of the dough strip. Further roll up the long dough strip. Tuck the end on the bottom. Gently press the tall pancake. Let rest and roll out the pancakes when you\'re ready to cook. Heat up a pan with a layer of oil on the bottom, add the pancake, and wiggle the pancake a few times so it won\'t stick. Let the pancake cook covered first. Flip the pancake and cook covered again. Then cook uncovered, until both sides of the pancake are browned.','30','ScallionPancake.jpeg',2,'breakfast','2021-12-13','2021-12-14',4),(3,'Chicken Bruschetta','1. Season chicken with Italian seasoning, garlic and salt. \nHeat oil in a grill pan or skillet, and sear chicken breasts over medium-high heat until browned on both sides and cooked through \n(about 6 minutes each side). Remove from pan; set aside and allow to rest. 2. Combine the tomatoes, red onion, basil, olive oil in \na bowl. Season with salt. 3. For the balsamic glaze, combine sugar and vinegar in a small saucepan over high heat and bring to the \nboil. Reduce heat to low; allow to simmer for 5-8 minutes or until mixture has thickened. 4. Top each chicken breast with the tomato \nmixture and parmesan cheese; serve immediately.','30','ChickenBruschetta.jpg',4,'lunch','2021-12-13','2021-12-13',3),(4,'Salt and Pepper Shrimp','1. Rinse and strain shrimp. You can also devein your shrimp. \n2. Pat the shrimps dry with a paper towel. 3. Cut 2 jalapenos, mince 4 cloves of garlic and 2 green onions. Set them aside. \n4. In a large mixing bowl, coat the shrimps in 2 cups of flour. 5. Heat oil in a pot to 375F. If you don\'t have a thermometer, \nyou can check the temperature by inserting a wooden chopstick into the oil. If bubbles rise, then your oil is ready. 6. Fry the \nshrimps for 1.5 - 2 minutes depending on your preferred crunchiness. 7. Melt 2 tbsp of butter in a hot pan (can also use oil if \nbutter is unavailable). 8. Add the jalapenos, garlic and green onions into the pot and cook till they are slightly brown. 9. Add \nyour tsp of salt and pepper. 10. Add your shrimp and mix everything. 11. That\'s all, enjoy!','4','SaltAndPepperShrimp.jpg',30,'dinner','2021-12-13','2021-12-13',2),(5,'Tuna Melt','Put bread in toaster. Chop celery. Combine canned tuna, celery, cranberries, \npepper, and salt in a bowl. Mix until everything is incorporated. Place mixture on toasted bread. Top with mozzarella cheese. \nBake in oven for 5-10 minutes or until cheese is melted.','10','TunaMelt.jpg',1,'lunch','2021-12-13','2021-12-13',1),(7,'Delicious Basil','Eat ya ya ya','1','DeliciousBasil.jpeg',10,'snack','2021-12-14','2021-12-14',4),(10,'Delicious Bread','Num Num Num','2','DeliciousBread.jpeg',1,'breakfast','2021-12-14','2021-12-14',4),(11,'Delicious Jalapenos','Eat.... so spicy ToT','1.5','DeliciousJalapenos.jpeg',1,'dinner','2021-12-14','2021-12-14',4),(12,'Fresh Tomato','Bite like apple','2','FreshTomato.jpeg',5,'snack','2021-12-14','2021-12-14',4),(13,'Wellesley Water','喝','1','WellesleyWater.jpeg',1,'non-alcoholic','2021-12-14','2021-12-14',4),(14,'Cranberry Juice','Juice them. Drink Them','30','CranberryJuice.jpeg',5,'gluten-free','2021-12-14','2021-12-14',4),(15,'Roasted Red Onions','Cut onion. Put on tray. Add seasoning. Bake in oven for 20 minutes at 350F.','20','GarlicRoastedRedOnions.jpeg',4,'dinner','2021-12-14','2021-12-14',4),(16,'Stay Up All Night','Nom Nom Nom in the dark','2','StayUpAllNight.jpeg',5,'dessert','2021-12-14','2021-12-14',4),(17,'Crispy Celery','Munch Munch Munch','1','CrispyCelery.jpeg',1,'vegetarian','2021-12-14','2021-12-14',4),(18,'Garlic Supreme','Eat with spoon','1','SpecialGarlicSupreme.jpeg',1,'pescatarian','2021-12-14','2021-12-14',4),(19,'Garlic Bread','Preheat oven to 350°F\r\nCut the loaf in half, horizontally. Mix the butter, garlic, and parsley together in a small bowl; spread butter mixture over the the two bread halves.\r\nPlace on a sturdy baking pan and bake at 350°F (175°C) for 10 minutes.\r\nRemove pan from oven, sprinkle Parmesan cheese over bread, then return to oven on the highest rack.\r\nBroil on high heat for 2-3 minutes until the edges of the bread begin to toast and the cheese bubbles. Watch very carefully while broiling, the bread can burn easily!\r\nRemove from oven; let cool a minute before slicing and enjoying.','20','GarlicBread.png',4,'dinner','2021-12-15','2021-12-15',3);
+/*!40000 ALTER TABLE `recipe` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `user`
+--
+
+DROP TABLE IF EXISTS `user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `user` (
+  `uid` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `email` varchar(50) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `hashed` char(60) NOT NULL,
+  PRIMARY KEY (`uid`),
+  UNIQUE KEY `username` (`username`),
+  KEY `username_2` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `user`
+--
+
+LOCK TABLES `user` WRITE;
+/*!40000 ALTER TABLE `user` DISABLE KEYS */;
+INSERT INTO `user` VALUES (1,'Alex Chin','ac5@wellesley.edu','ac5','$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S'),(2,'Cherie Wang','cw1@wellesley.edu','cw1','$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S'),(3,'Olivia Giandrea','og102@wellesley.edu','og102','$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S'),(4,'Ivy Ho','iho@wellesley.edu','iho','$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S'),(5,'Scott Anderson','scott.anderson@wellesley.edu','scott','$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+/*!40000 ALTER TABLE `user` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `uses`
+--
+
+DROP TABLE IF EXISTS `uses`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `uses` (
+  `rid` int(11) NOT NULL,
+  `iid` int(11) NOT NULL,
+  `amount` float NOT NULL,
+  `measurement_unit` enum('pinch','teaspoon (tsp)','tablespoon (tbsp)','fluid ounce (fl oz)','cup (c)','pint (pt)','quart (qt)','gallon (gal)','stick','piece','milliliter (mL)','liter (L)','gram (g)','kilogram (kg)','ounce (oz)','pound (lb)','whole','slice','each') DEFAULT NULL,
+  KEY `rid` (`rid`),
+  KEY `iid` (`iid`),
+  CONSTRAINT `uses_ibfk_1` FOREIGN KEY (`rid`) REFERENCES `recipe` (`rid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `uses`
+--
+
+LOCK TABLES `uses` WRITE;
+/*!40000 ALTER TABLE `uses` DISABLE KEYS */;
+INSERT INTO `uses` VALUES (1,1,2,'whole'),(1,2,1,'whole'),(1,3,6,'piece'),(1,4,3,'slice'),(1,5,0.5,'tablespoon (tbsp)'),(1,6,1,'pinch'),(3,11,2,'whole'),(3,12,1,'tablespoon (tbsp)'),(3,13,2,''),(3,6,1,'pinch'),(3,5,1,'tablespoon (tbsp)'),(3,1,4,'each'),(3,14,0.25,'each'),(3,3,0.25,'cup (c)'),(3,5,2,'tablespoon (tbsp)'),(3,15,0.5,'cup (c)'),(3,16,2,'teaspoon (tsp)'),(4,17,1.5,'pound (lb)'),(4,18,2,'piece'),(4,19,4,'piece'),(4,20,2,'piece'),(4,21,2,'cup (c)'),(4,8,1,'cup (c)'),(4,22,2,'tablespoon (tbsp)'),(4,23,2,'tablespoon (tbsp)'),(4,5,1,'teaspoon (tsp)'),(4,24,1,'teaspoon (tsp)'),(5,25,1,'cup (c)'),(5,26,1,'whole'),(5,27,0.25,'cup (c)'),(5,24,3,'pinch'),(5,2,1,'slice'),(5,13,1,'pinch'),(5,4,1,'ounce (oz)'),(2,6,8,'whole'),(2,7,2,'cup (c)'),(2,8,0.75,'cup (c)'),(2,9,0.25,'cup (c)'),(7,3,20,'pound (lb)'),(10,2,5,'slice'),(11,18,3,'piece'),(12,1,50,'pound (lb)'),(13,9,8,'gallon (gal)'),(14,26,100,'kilogram (kg)'),(15,14,4,'whole'),(15,6,2,'pinch'),(15,19,5,'whole'),(15,10,2,'tablespoon (tbsp)'),(15,23,3,'pinch'),(16,16,20,'kilogram (kg)'),(17,25,10,'stick'),(18,13,50,'cup (c)'),(19,2,1,'whole'),(19,22,1,'stick'),(19,13,2,'tablespoon (tbsp)'),(19,12,1,'teaspoon (tsp)'),(19,15,0.25,'cup (c)');
+/*!40000 ALTER TABLE `uses` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2021-12-16  8:08:08
+
+====================== rmd.sql =====================
+use recipes_db;
+
+drop table if exists uses;
+drop table if exists ingredient;
+drop table if exists recipe;
+drop table if exists user;
+
+create table user (
+    uid int auto_increment not null primary key,
+    name varchar(50) not null,
+    email varchar(50) not null,
+    username varchar(50) not null,
+    hashed char(60) not null,
+    unique(username),
+    index(username)
+)
+ENGINE = InnoDB;
+
+create table recipe (
+    rid int auto_increment not null primary key,
+    title varchar(30) not null,
+    instructions text,
+    cook_time varchar(4),
+    image_path varchar(50),
+    servings int, 
+    tag set('breakfast', 'lunch', 'dinner', 'snack', 'vegan', 
+            'vegetarian', 'pescatarian', 'quick meals', 'bake', 
+            'one-pan meal', 'stovetop', 'grill', 'dessert', 
+            'gluten-free', 'microwave', 'keto', 'raw', 'comfort food', 
+            'drinks', 'alcoholic', 'non-alcoholic'), /* set of recipe tag options */
+    post_date date,
+    last_updated_date date,
+    uid int not null,
+    INDEX (uid),
+    foreign key (uid) references user(uid) 
+        on update restrict 
+        on delete restrict
+)
+ENGINE = InnoDB;
+
+create table ingredient (
+    iid int auto_increment not null primary key,
+    name varchar(30) not null
+)
+ENGINE = InnoDB;
+
+create table uses (
+    rid int not null,
+    iid int not null,
+    amount float not null,
+    measurement_unit enum('pinch', 'teaspoon (tsp)', 'tablespoon (tbsp)', 
+                          'fluid ounce (fl oz)', 'cup (c)', 'pint (pt)', 
+                          'quart (qt)', 'gallon (gal)', 'stick', 'piece', 
+                          'milliliter (mL)', 'liter (L)', 'gram (g)', 
+                          'kilogram (kg)', 'ounce (oz)', 'pound (lb)', 
+                          'whole', 'slice', 'each'), /* set of measurement options */
+    /* no primary key, in case a user wants to insert 
+    multiple measurements of a single ingredient */
+    INDEX (rid),
+    INDEX (iid),
+    foreign key (rid) references recipe(rid)
+        on update restrict 
+        on delete restrict
+)
+ENGINE = InnoDB;
+
+/* TESTING CODE */
+
+insert into user(name, username, email, hashed) values ('Alex Chin', 'ac5', 'ac5@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+insert into user(name, username, email, hashed) values ('Cherie Wang', 'cw1', 'cw1@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+insert into user(name, username, email, hashed) values ('Olivia Giandrea', 'og102', 'og102@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+insert into user(name, username, email, hashed) values ('Ivy Ho', 'iho', 'iho@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+insert into user(name, username, email, hashed) values ('Scott Anderson', 'scott', 'scott.anderson@wellesley.edu', '$2b$12$/zFygzhTGnQNe786GD0Tw.U49x7Qmdoqnxwofp/sMPKNS21OaRl0S');
+
+insert into ingredient(name) values ('tomato');
+insert into ingredient(name) values ('bread');
+insert into ingredient(name) values ('basil');
+insert into ingredient(name) values ('mozzarella');
+insert into ingredient(name) values ('olive oil');
+
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Caprese', 5, 'Caprese.jpg', '10', 1,
+'Gather the ingredients. Using a serrated knife, slice an Italian sub roll in half lengthwise. Drizzle the inside with Italian 
+extra-virgin olive oil and balsamic glaze. Add basil and tomato to one side and sprinkle with salt and pepper. Top with fresh 
+mozzarella and close sandwich. Eat now or wrap tightly to enjoy later.',
+'lunch, quick meals, vegetarian', '2021-12-13', '2021-12-13');
+
+insert into uses(rid, iid, amount, measurement_unit) values (1,1,2,'whole');
+insert into uses(rid, iid, amount, measurement_unit) values (1,2,1,'whole');
+insert into uses(rid, iid, amount, measurement_unit) values (1,3,5,'piece');
+insert into uses(rid, iid, amount, measurement_unit) values (1,4,3,'slice');
+insert into uses(rid, iid, amount, measurement_unit) values (1,5,0.5,'tablespoon (tbsp)');
+
+insert into ingredient(name) values ('salt');
+insert into uses(rid, iid, amount, measurement_unit) values (1,6,1,'pinch');
+
+update uses set amount = 6 where rid = 1 and iid = 3; /* more basil */
+
+/* ivy's recipe: scallion pancake */
+insert into ingredient(name) values ('green scallion');
+insert into ingredient(name) values ('flour');
+insert into ingredient(name) values ('water');
+insert into ingredient(name) values ('oil');
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) values ('Scallion Pancake', 4, 'ScallionPancake.jpg', '30', 2,
+"Slowly add the hot water to the flour and mix it at the same time. Mix until the hot water is fully absorbed. Slowly add the cold water and continue mixing. Dough flakes should form once all the water is added. Start to press everything together with your hand. You can add a bit more water if there's too much dry flour left. Or you can slightly add a bit more flour if the dough is very sticky. Once you've pressed all the dough flakes together, you should have little or no dry flour left. Knead about 5 mins until a tough dough is formed. Let rest for 20 mins, then knead for 1 minute to form a smooth dough. Make flour oil paste. Cut the dough into 6 pieces and work on the pieces one at a time. Use your hands to shape the dough into a rectangular shape. Roll the dough. The dough should form a very thin rectangle. Add the flour oil paste. Spread out the paste, leaving about 1” (2.5 cm) on both a long and a short end without the filling (your top and left). Add the green onion, concentrating most of it towards a long and short end with the filling. Gently roll up the dough, as tightly as possible. Press the air bubbles out of the dough strip. Further roll up the long dough strip. Tuck the end on the bottom. Gently press the tall pancake. Let rest and roll out the pancakes when you're ready to cook. Heat up a pan with a layer of oil on the bottom, add the pancake, and wiggle the pancake a few times so it won't stick. Let the pancake cook covered first. Flip the pancake and cook covered again. Then cook uncovered, until both sides of the pancake are browned.", 
+'breakfast, one-pan meal, quick meals, vegetarian', '2021-12-13', '2021-12-13');
+
+insert into uses(rid, iid, amount, measurement_unit) values (2,6,8,'whole');
+insert into uses(rid, iid, amount, measurement_unit) values (2,7,2,'cup (c)');
+insert into uses(rid, iid, amount, measurement_unit) values (2,8,0.75,'cup (c)');
+insert into uses(rid, iid, amount, measurement_unit) values (2,9,0.25,'cup (c)');
+
+/* olivia's recipe: chicken bruschetta */
+insert into ingredient (name) values ('chicken breast');
+insert into ingredient (name) values ('italian seasoning');
+insert into ingredient (name) values ('minced garlic');
+insert into ingredient (name) values ('red onion');
+insert into ingredient (name) values ('parmesan cheese');
+insert into ingredient (name) values ('brown sugar');
+insert into recipe (title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Chicken Bruschetta', 3,  'ChickenBruschetta.jpg', '30', 4, '1. Season chicken with Italian seasoning, garlic and salt. 
+Heat oil in a grill pan or skillet, and sear chicken breasts over medium-high heat until browned on both sides and cooked through 
+(about 6 minutes each side). Remove from pan; set aside and allow to rest. 2. Combine the tomatoes, red onion, basil, olive oil in 
+a bowl. Season with salt. 3. For the balsamic glaze, combine sugar and vinegar in a small saucepan over high heat and bring to the 
+boil. Reduce heat to low; allow to simmer for 5-8 minutes or until mixture has thickened. 4. Top each chicken breast with the tomato 
+mixture and parmesan cheese; serve immediately.', 'lunch, dinner, stovetop', '2021-12-13', '2021-12-13');
+ 
+insert into uses(rid, iid, amount, measurement_unit) values (3,11,2,'whole');
+insert into uses(rid, iid, amount, measurement_unit) values (3,12,1,'tablespoon (tbsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,13,2,'teaspoons (tsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,6,1,'pinch');
+insert into uses(rid, iid, amount, measurement_unit) values (3,5,1,'tablespoon (tbsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,1,4,'each');
+insert into uses(rid, iid, amount, measurement_unit) values (3,14,0.25,'each');
+insert into uses(rid, iid, amount, measurement_unit) values (3,3,0.25,'cup (c)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,5,2,'tablespoon (tbsp)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,15,0.5,'cup (c)');
+insert into uses(rid, iid, amount, measurement_unit) values (3,16,2,'teaspoon (tsp)');
+
+/* cherie's recipe: salt and pepper shrimp*/
+insert into ingredient(name) values ('shrimp');
+insert into ingredient(name) values ('jalapenos');
+insert into ingredient(name) values ('garlic');
+insert into ingredient(name) values ('green onions');
+insert into ingredient(name) values ('frying oil');
+insert into ingredient(name) values ('butter');
+insert into ingredient(name) values ('pepper');
+
+Insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Salt and Pepper Shrimp', 2, 'SaltAndPepperShrimp.jpg', 4, '30', "1. Rinse and strain shrimp. You can also devein your shrimp. 
+2. Pat the shrimps dry with a paper towel. 3. Cut 2 jalapenos, mince 4 cloves of garlic and 2 green onions. Set them aside. 
+4. In a large mixing bowl, coat the shrimps in 2 cups of flour. 5. Heat oil in a pot to 375F. If you don't have a thermometer, 
+you can check the temperature by inserting a wooden chopstick into the oil. If bubbles rise, then your oil is ready. 6. Fry the 
+shrimps for 1.5 - 2 minutes depending on your preferred crunchiness. 7. Melt 2 tbsp of butter in a hot pan (can also use oil if 
+butter is unavailable). 8. Add the jalapenos, garlic and green onions into the pot and cook till they are slightly brown. 9. Add 
+your tsp of salt and pepper. 10. Add your shrimp and mix everything. 11. That's all, enjoy!", 'dinner', '2021-12-13', '2021-12-13');
+
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 17, 1.5, 'pound (lb)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 18, 2, 'piece');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 19, 4, 'piece');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 20, 2, 'piece');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 21, 2, 'cup (c)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 8, 1, 'cup (c)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 22, 2, 'tablespoon (tbsp)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 23, 2, 'tablespoon (tbsp)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 5, 1, 'teaspoon (tsp)');
+Insert into uses(rid, iid, amount, measurement_unit) values (4, 24, 1, 'teaspoon (tsp)');
+
+/* alex's recipe: tuna melt */
+insert into ingredient(name) values ('canned tuna');
+insert into ingredient(name) values ('celery');
+insert into ingredient(name) values ('cranberries');
+
+insert into recipe(title, uid, image_path, cook_time, servings, instructions, tag, post_date, last_updated_date) 
+values ('Tuna Melt', 1, 'TunaMelt.jpg', '10', 1, 'Put bread in toaster. Chop celery. Combine canned tuna, celery, cranberries, 
+pepper, and salt in a bowl. Mix until everything is incorporated. Place mixture on toasted bread. Top with mozzarella cheese. 
+Bake in oven for 5-10 minutes or until cheese is melted.', 'lunch, pescatarian, quick meals, bake', '2021-12-13', '2021-12-13');
+
+insert into uses(rid, iid, amount, measurement_unit) values (5,25,1, 'cup (c)'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,26,1,'whole'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,27,0.25,'cup (c)'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,24,3, 'pinch'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,2,1, 'slice'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,13,1, 'pinch'); 
+insert into uses(rid, iid, amount, measurement_unit) values (5,4,1, 'ounce (oz)'); 
+
+====================== templates/base.html =====================
+<!doctype html>
+<html lang='en'>
+
+<head>
+    <meta charset='utf-8'>
+    <!-- for mobile-friendly pages -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name=author content="Ivy Ho, Olivia Giandrea, Cherie Wang, Alex Chin">
+    
+    <title>{{ page_title }}</title>
+    <link rel='stylesheet' href="{{url_for('static', filename = 'style.css')}}">
+    {% block head_stuff %} {% endblock %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <header>
+        {% block nav %}
+        <nav>
+            <ul>
+                <img src="{{url_for('pic', filename='logo.png')}}" alt="RMDlogo"/>
+                <li><a href="{{url_for('index')}}">Home</a></li>
+                <li><a href="{{url_for('insert')}}">Insert a Recipe</a></li>
+                <li><a href="{{url_for('search')}}">Search for a Recipe</a></li>
+            </ul>
+
+            {% if user %}
+            <a href="{{url_for('profile')}}">View Profile</a>
+            <!-- <form method="get" action="{{url_for('profile')}}">
+                <p><input type="submit" value="View Profile"></p>
+            </form> -->
+
+            <form method="get" action="{{url_for('logout')}}">
+                <p><input type="submit" value="logout {{user}}">
+            </form>
+
+            {% else %}
+            <form method="get" action="{{url_for('login')}}">
+                <p><input type="submit" value="login/register">
+            </form>
+
+            {% endif %}
+
+            {% endblock %}
+        </nav>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <div id="messages">
+            {% for msg in messages %}
+            <p>{{msg}}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if error %}
+        <p class="error"><strong>Error: </strong>
+            <ul>
+                {% for e in error %}
+                <li class="error"> {{ e }} </li>
+                {% endfor %}
+            </ul>
+        </p>
+        <br>
+        {% endif %}
+
+        {% block main_content %}
+        <h1>Welcome!</h1>
+        {% endblock %}
+
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        {% block end_scripts %}
+        {% endblock %}
+    </main>
+</body>
+
+</html>
+====================== templates/error.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+<h1>Error</h1>
+<p>Sorry, the recipe you are looking for is not in the database.</p>
+<p>Click on our search tool to look for more recipes!</p>
+{% endblock %}
+====================== templates/index.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+<h1>Hello!</h1>
+<h1>Find a recipe curated for your pantry!</h1>
+<br>
+<p>Click on one of the links in the navigation bar to the left!</p>
+
+{% endblock %}
+====================== templates/insert.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Add a Recipe</h1>
+
+<div class=container>
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <form method="post" action="{{url_for('insert')}}" enctype="multipart/form-data">
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Recipe Data</legend>
+                    <table class="recipeTable" role="presentation">
+                        <tbody>
+                            <tr>
+                                <td class="left"><label for="recipe-title">Recipe Title: </label></td>
+                                <td class="right"><input id="recipe-title" type="text" name="recipe-title"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-image">Upload an Image:</label></td>
+                                <td class="right"><input type="file" id="recipe-image" name="recipe-image"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-tags">Tags: </label></td>
+                                <td class="right">
+                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                        {% for tag in tags %}
+                                        <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-time">Cooking Time: (minutes)</label></td>
+                                <td class="right"><input id="recipe-time" type="text" name="recipe-time"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-servings">Servings: </label></td>
+                                <td class="right"><input id="recipe-servings" type="text" name="recipe-servings"></td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="ingredients-table">Ingredients: </label></td>
+                                <td class="right">
+                                    <p style="align-self: center;">Please insert amounts as whole numbers or decimals</p>
+                                    <table role="presentation" class="table" id='ingredients-table' style="margin-bottom: 1em">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Amount</th>
+                                                <th scope="col">Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Each recipe can hold <= 10 ingredients -->
+                                            {% for n in range(1, 11) %}
+                                                <tr>
+                                                    <td>
+                                                        <label for="ingredient{{n}}" class="smallLabel">Ingredient{{n}}: </label>
+                                                        <select class="form-select" id="ingredient{{n}}" name="ingredient{{n}}">
+                                                            <option value="">Select an Ingredient</option>
+                                                            {% for ingredient in ingredients %}
+                                                            <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <label for="amount{{n}}" class="smallLabel">Amount{{n}}: </label>
+                                                        <input type="text" id="amount{{n}}" name="amount{{n}}">
+                                                    </td>
+                                                    <td>
+                                                        <label for="unit{{n}}" class="smallLabel">Unit{{n}}: </label>
+                                                        <select class="form-select" id="unit{{n}}" name="unit{{n}}">
+                                                        <option value="">Select a Unit</option>
+                                                        {% for unit in units %}
+                                                        <option value="{{ unit }}">{{ unit }}</option>
+                                                        {% endfor %}
+                                                    </select></td>
+                                               </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <a href="#" class="add-more">Add Another Ingredient</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="left"><label for="recipe-instructions">Instructions: </label></td>
+                                <td class="right"><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4" style="margin-top: 1em"></textarea></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8 justify-content-center">
+                        <p class="pbtn">
+                            <input type="submit" value="Add Recipe">
+                        </p>
+                    </div>
+                    <div class="col-2"></div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // script for adding extra rows of ingredients to form
+    jQuery(document).ready(function(){
+        let n = 11
+        jQuery('.add-more').click(function(event){
+            event.preventDefault();
+            jQuery('#ingredients-table').append('<tr><td><select class="form-select" name="ingredient' + n + '"><option value="">Select an Ingredient</option>{% for ingredient in ingredients %}<option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>{% endfor %}</select></td><td><input type="text" name="amount' + n + '"></td><td><select class="form-select" name="unit' + n + '"><option value="">Select a Unit</option>{% for unit in units %}<option value="{{ unit }}">{{ unit }}</option>{% endfor %}</select></td></tr>');
+            n += 1;
+        }); 
+    });
+</script>
+
+{% endblock %}
+====================== templates/login.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+<h1>Hello!</h1>
+<h1>Please log in or register below!</h1>
+
+<!-- Tab links -->
+<div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'login')" id="defaultOpen">login</button>
+        <button class="tablinks" onclick="openTab(event, 'register')">register</button>
+    </div>
+  
+    <!-- Tab content -->
+    <div id="login" class="tabcontent">
+        <form method="post" action="{{url_for('login')}}">
+            <fieldset class="fields">
+            <legend>login credentials</legend>
+                <table>
+                    <tr><td><label for="username1">Username: </label></td>
+                        <td><input type=text id="username1" name="username"></td></tr>
+                    <tr><td><label for="password1">Password:</label></td>
+                        <td><input type=password id="password1" name="password"></td></tr>
+                </table>
+            </fieldset>
+        
+            <p><input type="submit" name="submit" value="login">
+        </form>
+    </div>
+  
+    <div id="register" class="tabcontent">
+        <form method="post" action="{{url_for('login')}}">
+            <fieldset class="fields">
+            <legend>Make an Account</legend>
+                <table>
+                    <tr><td><label for="fullname">Full Name: </label></td>
+                        <td><input type=text id="fullname" name="fullname"></td></tr>
+                    <tr><td><label for="email">Email: </label></td>
+                        <td><input type=text id="email" name="email"></td></tr>
+                    <tr><td><label for="username">Username: </label></td>
+                        <td><input type=text id="username" name="username"></td></tr>
+                    <tr><td><label for="password">Password:</label></td>
+                        <td><input type=password id="password" name="password"></td></tr>
+                    <tr><td><label for="password2">Re-type Password:</label></td>
+                        <td><input type=password id="password2" name="password2"></td></tr>
+                </table>
+            </fieldset>
+        
+            <p><input type="submit" name="submit" value="register">
+        </form>
+    </div>
+{% endblock %}
+
+{% block end_scripts %}
+<script>
+    // Get the element with id="defaultOpen" and click on it
+    // This changes the color of the active navbar tab by adding an "active" class
+    // it's just for style :)
+    document.getElementById("defaultOpen").click();
+
+    function openTab(event, action) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(action).style.display = "block";
+      event.currentTarget.className += " active";
+    }
+    </script>
+{% endblock %}
+====================== templates/profile.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Profile</h1>
+
+<div class="profile information">
+    <div class=container>
+        <div class="row">
+            <div class="col-2"></div>
+            <div class="col-8">
+                <p>Hello {{user}}, welcome to your profile page.</p>
+                <p>View the recipes that you have created below: </p>
+                <div class="recipe_profile">
+                    <td>
+                        {% for recipe in recipes %}
+                        <div class="gallery">
+                            <!-- <a href="../recipe/{{recipe.rid}}" value="{{recipe.rid}}"> -->
+                            <a href="{{url_for('recipe', recipe_id=recipe.rid)}}" value="{{recipe.rid}}">   
+                                {% if recipe.image_path %}
+                                    <img src="{{url_for('pic', filename=recipe.image_path)}}"
+                                        alt="Recipe Image Not Found">
+                                {% else %}
+                                    <p>Image not found</p>
+                                {% endif %}
+                                <div class="desc">{{recipe.title}}</div>
+                            </a>
+                        </div>
+                        {% endfor %}
+
+                    </td>
+                </div>
+                </li>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
+====================== templates/recipe.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+<h1>Recipe</h1>
+<div class="recipe-detail">
+    <div class=container>
+        <div class="row">
+            <div class="col-2"></div>
+            <div class="col-8">
+                <p>{{creator.name}}</p>
+                <h2>{{recipe.title}}</h2>
+                <p>Cooking Time: {{recipe.cook_time}} Minutes</p>
+                <div class = "tags">
+                    <p>Tags: {{recipe.tag}}</p>
+
+                    <!-- <ul>
+                        {% for tag in tags %}
+                        <li>{{tag}}</li>
+                        {% endfor %}
+                    </ul> -->
+                </div>
+                <p>
+                    <label for="recipe-servings">Servings: </label>
+                    <input id="recipe-servings" type="text" name="recipe-servings" value="{{recipe.servings}}"></td>
+                </p>
+                {% if filename %}
+                <img id="recipe-image" src="{{url_for('pic', filename=recipe['image_path'])}}"
+                    alt="Recipe Image Was Not Found" style="max-height:300px; margin-bottom:1em;">
+                {% endif %}
+                <div class="description">
+                    <div class="ingredients">
+                        <p>Ingredients:</p>
+                        <ul>
+                            {% for ingredient in ingredients %}
+                            <li>{{ingredient.amount}} {{ingredient.measurement_unit}} {{ingredient.name}}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="instructions">
+                        <p>Instructions:</p>
+                        <ol type="1">
+                            {% for instruction in instructions %}
+                            <li>{{instruction}}</li>
+                            {% endfor %}
+                        </ol>
+                        <!-- <p id = "inst">{{recipe.instructions}}</p> -->
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class = "dates">
+                    <p>Date Posted: {{recipe.post_date}}</p>
+                    <p>Latest Update: {{recipe.last_updated_date}}</p>
+                </div>
+            </div>
+        </div>
+        {% if uid == creator.uid %}
+        <div class="buttons">
+            <form method=GET action="{{url_for('update', rid = recipe_id)}}">
+                <input type="submit" name="submit" value="update">
+            </form>
+            <form method=POST onSubmit="return confirm('Are you sure you wish to delete?');" action="{{url_for('delete', rid = recipe_id)}}">
+                <input type="submit" name="submit" value="delete">
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+
+{% endblock %}
+====================== templates/search.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Search for Recipes</h1>
+
+<div class=container>
+    <div class="col-2"></div>
+    <div class="col-8">
+        <div class="search">
+            <form method="post" action="{{url_for('search')}}">
+
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Search</legend>
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td><label for="recipe-title">Search by Recipe Title: </label></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title" placeholder="Title"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-ingredients">Search by Ingredients: </label></td>
+                                <td>
+                                    <p>Enter all the ingredients you have </p>
+                                    <form autocomplete="off">
+                                        <div class="autocomplete" style="width:300px;">
+                                          <!-- <input id="myInput"  type="text"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients" > -->
+                                          <input  type="text" onfocus="this.value=''"  placeholder="Ingredient" multiple id="recipe-ingredients" name="recipe-ingredients">
+                                          <!-- <p id="ri"></p> -->
+                                        </div>
+                                        <!-- <input type="submit"> -->
+                                        <div id="user_input" ></div>
+                                      </form>
+                                    
+                                    <!-- <p>Select all the ingredients you have </p>
+                                    <select class="form-select" multiple id="recipe-ingredients"
+                                        name="recipe-ingredients">
+                                        {% for ingredient in ingredients %}
+                                        <option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>
+                                        {% endfor %}
+                                    </select> -->
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <p class="pbtn">
+                    <input type="submit" value="Search">
+                </p>
+            </form>
+            {% if searchResults %}
+            <p>Search Results:</p>
+            {% endif %}
+        </div>
+        {% if searchResults %}
+        <td>
+            <p class="form-select" multiple id="recipe-ingredients" name="recipe-ingredients">
+                {% for searchResult in searchResults %}
+                <div class="gallery">
+                    <a href="{{url_for('recipe', recipe_id=searchResult.rid)}}" value="{{searchResult.rid}}">
+                        <img src="{{url_for('pic', filename=searchResult['image_path'])}}" alt="Recipe Image Not Found">
+                        <div class="desc">{{searchResult.title}}</div>
+                    </a>
+                </div>
+                {% endfor %}
+            </p>
+        </td>
+        {% endif %}
+    </div>
+    <div class="col-2"></div>
+</div>
+
+</div>
+</div>
+<div class="col-2"></div>
+</div>
+</div>
+<script type="text/javascript">
+    // script for autocomplete
+    //load the ingredients as autocomplete options
+    var ingredients_json = '{{ ingredients|tojson }}';
+    ingredients_json = JSON.parse(ingredients_json);
+    var ingredients = [];
+    for (i = 0; i < ingredients_json.length; i++) {
+        console.log(ingredients_json[i]['name']);
+        ingredients.push(ingredients_json[i]['name']);
+    }
+    // console.log('ingredients',ingredients);
+    function autocomplete(inp, arr) {
+        /*the autocomplete function takes two arguments,
+        the text field element and an array of possible autocompleted values:*/
+        var currentFocus;
+        /*execute a function when someone writes in the text field:*/
+        inp.addEventListener("input", function(e) {
+            var a, b, i, val = this.value;
+            /*close any already open lists of autocompleted values*/
+            closeAllLists();
+            if (!val) { return false;}
+            currentFocus = -1;
+            /*create a DIV element that will contain the items (values):*/
+            a = document.createElement("DIV");
+            a.setAttribute("id", this.id + "autocomplete-list");
+            a.setAttribute("class", "autocomplete-items");
+            /*append the DIV element as a child of the autocomplete container:*/
+            this.parentNode.appendChild(a);
+            /*for each item in the array...*/
+            for (i = 0; i < arr.length; i++) {
+                /*check if the item starts with the same letters as the text field value:*/
+                if (arr[i].substr(0, val.length).toUpperCase() == val.toUpperCase()) {
+                /*create a DIV element for each matching element:*/
+                b = document.createElement("DIV");
+                /*make the matching letters bold:*/
+                b.innerHTML = "<strong>" + arr[i].substr(0, val.length) + "</strong>";
+                b.innerHTML += arr[i].substr(val.length);
+                /*insert a input field that will hold the current array item's value:*/
+                b.innerHTML += "<input type='hidden' value='" + arr[i] + "'>";
+                /*execute a function when someone clicks on the item value (DIV element):*/
+                    b.addEventListener("click", function(e) {
+                    /*insert the value for the autocomplete text field:*/
+                    inp.value = this.getElementsByTagName("input")[0].value;
+                    /*close the list of autocompleted values,
+                    (or any other open lists of autocompleted values:*/
+                    closeAllLists();
+
+
+                    jQuery('#user_input').append("<p id='ri'>"+String(inp.value) + '</p>');
+                    var user_input_elem = document.getElementById("user_input").childNodes;
+                    var ingredients_text = '';
+                    for(var i = 0; i < user_input_elem.length; i++) {
+                        //maybe reutrn array instead?
+                        ingredients_text += user_input_elem[i].textContent + ',';
+                        console.log('hi?')
+                    }
+                    console.log('user_input_elem',user_input_elem[0]);
+                    console.log('all ingredients',ingredients_text);
+                    //set what the form returns to the request.get to be all ingredients
+                    document.getElementById('recipe-ingredients').value = ingredients_text;
+                });
+                a.appendChild(b);
+                }
+            }
+
+        });
+        /*execute a function presses a key on the keyboard:*/
+        inp.addEventListener("keydown", function(e) {
+            var x = document.getElementById(this.id + "autocomplete-list");
+            if (x) x = x.getElementsByTagName("div");
+            if (e.keyCode == 40) {
+                /*If the arrow DOWN key is pressed,
+                increase the currentFocus variable:*/
+                currentFocus++;
+                /*and and make the current item more visible:*/
+                addActive(x);
+            } else if (e.keyCode == 38) { //up
+                /*If the arrow UP key is pressed,
+                decrease the currentFocus variable:*/
+                currentFocus--;
+                /*and and make the current item more visible:*/
+                addActive(x);
+            } else if (e.keyCode == 13) {
+                /*If the ENTER key is pressed, prevent the form from being submitted,*/
+                e.preventDefault();
+                if (currentFocus > -1) {
+                /*and simulate a click on the "active" item:*/
+                if (x) x[currentFocus].click();
+                }
+            }
+    });
+    function addActive(x) {
+        /*a function to classify an item as "active":*/
+        if (!x) return false;
+        /*start by removing the "active" class on all items:*/
+        removeActive(x);
+        if (currentFocus >= x.length) currentFocus = 0;
+        if (currentFocus < 0) currentFocus = (x.length - 1);
+        /*add class "autocomplete-active":*/
+        x[currentFocus].classList.add("autocomplete-active");
+    }
+    function removeActive(x) {
+        /*a function to remove the "active" class from all autocomplete items:*/
+        for (var i = 0; i < x.length; i++) {
+        x[i].classList.remove("autocomplete-active");
+        }
+    }
+    function closeAllLists(elmnt) {
+        /*close all autocomplete lists in the document,
+        except the one passed as an argument:*/
+        var x = document.getElementsByClassName("autocomplete-items");
+        for (var i = 0; i < x.length; i++) {
+        if (elmnt != x[i] && elmnt != inp) {
+        x[i].parentNode.removeChild(x[i]);
+        }
+    }
+    }
+    /*execute a function when someone clicks in the document:*/
+    document.addEventListener("click", function (e) {
+        closeAllLists(e.target);
+    });
+    }
+    autocomplete(document.getElementById("recipe-ingredients"), ingredients);
+
+</script>
+{% endblock %}
+====================== templates/update.html =====================
+{% extends "base.html" %}
+
+{% block main_content %}
+
+<h1>Update a Recipe</h1>
+
+<div class=container>
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col-8">
+            <form method="post" action="{{url_for('update', rid = rid)}}" enctype="multipart/form-data">
+                <input type="hidden" name="form-name" value="form1">
+                <fieldset>
+                    <legend>Recipe Data</legend>
+                    <table role="presentation">
+                        <tbody>
+                            <tr>
+                                <td><label for="recipe-title">Recipe Title: </label></td>
+                                <td><input id="recipe-title" type="text" name="recipe-title" value="{{recipe.title}}"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-image">Upload an Image:</label></td>
+                                <td><input type="file" id="recipe-image" name="recipe-image"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-tags">Tags: </label></td>
+                                <td>
+                                    <select class="form-select" multiple id="recipe-tags" name="recipe-tags">
+                                        {% for tag in tags %}
+                                        {% if tag in recipe.tag %}
+                                        <option value="{{ tag }}" selected> {{ tag }} </option>
+                                        {% else %}
+                                        <option value="{{ tag }}"> {{ tag }} </option>
+                                        {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-time">Cooking Time: (minutes)</label></td>
+                                <td><input id="recipe-time" type="text" name="recipe-time" value={{recipe.cook_time}}></td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-servings">Servings: </label></td>
+                                <td><input id="recipe-servings" type="text" name="recipe-servings" value="{{recipe.servings}}"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="ingredient1">Ingredients: </label></td>
+                                <td>
+                                    <table role="presentation" class="table" id='ingredients-table' style="margin-bottom: 1em">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col">Name</th>
+                                                <th scope="col">Amount</th>
+                                                <th scope="col">Unit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <!-- Each recipe can hold <= 10 ingredients -->
+                                            {% for ingredient in ingredients %}
+                                                <tr>
+                                                    <td>
+                                                        <select class="form-select" name="ingredient{{ loop.index }}">
+                                                            <option value="">Select an Ingredient</option>
+                                                            {% for listitem in ingredientList %}
+                                                            {% if listitem.iid == ingredient.iid %}
+                                                            <option value="{{ listitem.iid }}" selected>{{ listitem.name }}</option>
+                                                            {% else %}
+                                                            <option value="{{ listitem.iid }}">{{ listitem.name }}</option>
+                                                            {% endif %}
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" name="amount{{ loop.index }}" value="{{ingredient.amount}}"></td>
+                                                    <td><select class="form-select" name="unit{{ loop.index }}">
+                                                        <option value="">Select a Unit</option>
+                                                        {% for unit in units %}
+                                                        {% if unit == ingredient.measurement_unit %}
+                                                        <option value="{{ unit }}" selected>{{ unit }}</option>
+                                                        {% else %}
+                                                        <option value="{{ unit }}">{{ unit }}</option>
+                                                        {% endif %}
+                                                        {% endfor %}
+                                                    </select></td>
+                                               </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                    <a href="#" class="add-more">Add Another Ingredient</a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label for="recipe-instructions">Instructions: </label></td>
+                                <td><textarea class="form-control" id="recipe-instructions" name="recipe-instructions" rows="4" style="margin-top: 1em">{{recipe.instructions}}</textarea></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </fieldset>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8 justify-content-center">
+                        <p class="pbtn">
+                            <div class="buttons">
+                                <form method="POST" onSubmit="return confirm('Are you sure you want to update?');" action="{{url_for('update', rid = rid)}}">
+                                    <input type="submit" name="submit" value="update">
+                                </form>
+                                <form method="POST" onSubmit="return confirm('Are you sure you wish to delete?');" action="{{url_for('delete', rid = rid)}}">
+                                    <input type="submit" name="submit" value="delete">
+                                </form>
+                            </div>
+                        </p>
+                    </div>
+                    <div class="col-2"></div>
+                </div>
+            </form>
+
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    // script for adding extra rows of ingredients to form
+    jQuery(document).ready(function(){
+        let n = 11
+        jQuery('.add-more').click(function(event){
+            event.preventDefault();
+            jQuery('#ingredients-table').append('<tr><td><select class="form-select" name="ingredient' + n + '"><option value="">Select an Ingredient</option>{% for ingredient in ingredients %}<option value="{{ ingredient.iid }}">{{ ingredient.name }}</option>{% endfor %}</select></td><td><input type="text" name="amount' + n + '"></td><td><select class="form-select" name="unit' + n + '"><option value="">Select a Unit</option>{% for unit in units %}<option value="{{ unit }}">{{ unit }}</option>{% endfor %}</select></td></tr>');
+            n += 1;
+        }); 
+    });
+</script>
+
+{% endblock %}
+====================== static/*.js =====================
+
+====================== static/style.css =====================
+/* the --color-header and others are CSS variables, which we access later. 
+*/
+
+HTML {
+    --color-header: #4f6860;  /* color for H1-H6 and others. was deepskyblue but poor contrast. */
+    --color-hilite: #d55b3e;  /* was red, but this avoids WAVE contrast errors */ 
+    --color-focus: #fdc57b;
+    --color-dark: #394a51;
+    --color-light: #fbf2d5;
+    --font-family: "Open Sans", sans-serif;
+    font-family: var(--font-family);
+}
+
+body {
+    background: var(--color-light);
+    display: flex;
+    flex-direction: row;
+    color: var(--color-dark);
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+    box-sizing: border-box;
+}
+
+main {
+    margin-left: 40px;
+}
+/* For flashed messages; make them stand out using red and italics */
+
+#messages {
+    color: var(--color-hilite);
+    font-style: italic;
+}
+
+h1 {
+    font-size: 200%;
+    color: var(--color-header);
+    border-style: solid;
+    border-width: 0 0 5px 0;
+    border-bottom-color: var(--color-focus);
+    text-shadow: 1px 1px 1px var(--color-focus),
+                 1px 1px 1px var(--color-focus);
+}
+
+/* for a simple navbar */
+nav > ul {
+    display: flex;
+    flex-direction: column;
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+}
+
+nav > ul > li {
+    flex: 0 0 auto;
+    width: 13em; 
+}
+
+nav img {
+    width: 12em;
+    align-self: center;
+    margin-left: 1em;
+}
+
+nav button, nav a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box; /* easier to make button and A the same size */
+    width: 100%;
+    height: 60px;
+    padding: 15px;
+    margin: 10px;
+    background-color: var(--color-header); /* was #3498db */
+    border-radius: 1em;
+    border-style: solid;
+    border-width: 0 5px 5px 0;
+    border-bottom-color: var(--color-focus);
+    border-right-color: var(--color-dark);
+    cursor: pointer;
+    /* Firefox uses font -apple-system unless I repeat the font spec here. */
+    font-family: var(--font-family);
+    font-size: 1rem;
+    text-decoration: none;
+    text-shadow: 1px 1px 1px var(--color-dark),
+                 2px 2px 1px var(--color-dark);
+    color: var(--color-light);
+}
+
+/* Only the top-level buttons are centered; lower ones are left-aligned. */
+nav > ul > li > button , nav > ul > li > a {
+    text-align: center;
+}
+
+/* because of the margin trick, this can only be used for the last element */
+
+nav li.right {
+    margin-left: auto;
+}
+
+nav button:hover, button:focus, nav a:hover, nav a:focus {
+    background-color: var(--color-focus);
+    color: var(--color-dark);
+    border-right-color: var(--color-header);
+    border-bottom-color: var(--color-dark);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+}
+
+fieldset {
+    border: 3px solid var(--color-focus);
+    border-radius: 1em;
+}
+
+label {
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+    background-color: var(--color-header);
+    color: var(--color-light);
+    padding: 3px;
+}
+
+/* making ingredient insert form labels less dramatic */
+.smallLabel {
+    border: none !important;
+    background-color: transparent !important;
+    color: var(--color-dark);
+}
+
+legend {
+    font-weight: bold;
+    padding: 5px;
+}
+
+select {
+    padding: 5px;
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    background-color: var(--color-light);
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+}
+
+select:focus {
+    outline: none;
+}
+
+::placeholder { /* Chrome, Firefox, Opera, Safari 10.1+ */
+    color: gray;
+}
+
+input {
+    border: 3px solid var(--color-header);
+    border-radius: 0.5em;
+    color: var(--color-dark);
+    background-color: var(--color-light);
+    margin: 5px;
+    padding: 5px;
+    border-bottom-color: var(--color-dark);
+    border-right-color: var(--color-dark);
+}
+
+input:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--color-header);
+}
+
+/* button design */
+input[type=submit] {
+    font-family: "Open Sans", sans-serif;
+    font-size: 16px;
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+    color: var(--color-dark);
+    cursor: pointer;
+    border: 3px solid;
+    padding: 0.25em 0.5em;
+    box-shadow: 1px 1px 0px 0px, 2px 2px 0px 0px, 3px 3px 0px 0px, 4px 4px 0px 0px, 5px 5px 0px 0px;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+}
+
+input[type=submit]:hover {
+    background-color: var(--color-focus);
+    color: var(--color-header);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+    
+}
+
+input[type=submit]:active {
+    box-shadow: 0px 0px 0px 0px;
+    top: 5px;
+    left: 5px;
+}
+
+/* Style the tab */
+.tab {
+    margin-top: 10px;
+    overflow: hidden;
+    border: 3px solid var(--color-dark);
+    border-bottom: none;
+    border-left: 3px solid var(--color-focus);
+    border-top: 3px solid var(--color-focus);
+    border-radius: 1em 1em 0 0;
+}
+  
+/* Style the buttons that are used to open the tab content */
+.tab button {
+    background-color: inherit;
+    float: left;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    transition: 1s;
+    color: var(--color-dark);
+    letter-spacing: 2px;
+    text-decoration: none;
+    text-transform: uppercase;
+    width: 50%;
+}
+  
+/* Change background color of buttons on hover */
+.tab button:hover {
+    text-shadow: 1px 1px 1px var(--color-focus),
+                 2px 2px 1px var(--color-focus);
+}
+  
+/* Create an active/current tablink class */
+.tab button.active {
+    background-color: var(--color-focus);
+    text-shadow: 1px 1px 1px var(--color-light),
+                 2px 2px 1px var(--color-light);
+}
+  
+/* Style the tab content */
+.tabcontent {
+    display: none;
+    padding: 2em 5em 2em 3em;
+    border: 3px solid var(--color-dark);
+    border-left: none;
+    border-top: none;
+    border-radius: 0 0 1em 1em;
+    background-color: var(--color-focus);
+    -webkit-animation: fadeEffect 1s;
+    animation: fadeEffect 1s;
+}
+
+.tabcontent > form > fieldset {
+    border: 3px solid var(--color-dark);
+    border-radius: 1em;
+}
+
+.fields input {
+    width: 80%;
+}
+
+/* Fade in tabs */
+@-webkit-keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+  
+@keyframes fadeEffect {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+@media (min-width: 768px) {
+    input[type=submit] {
+    padding: 0.25em 0.75em;
+  }
+}
+
+
+/* Olivia's CSS */
+.container {
+    text-align: center;
+    width: 925px;
+}
+
+legend {
+    text-align: center;
+}
+
+.form-check-label {
+    float: left;
+}
+
+form {
+    align-self: center;
+    padding: 1em;
+}
+
+.left {
+    text-align:right;
+}
+.right {
+    text-align:left;
+}
+
+.noshow {
+    visibility: hidden;
+    max-width: 0px;
+}
+
+fieldset,table {
+    width:100%
+}
+
+textarea {
+    width: 90%;
+}
+
+#recipe-title {
+    width: 90%;
+}
+
+#recipe-ingredients {
+    width: 90%;
+}
+
+.error {
+    color : #a86123;
+    margin-left: 3em;
+}
+
+/* Cherie's CSS */
+.recipe-detail {
+    /*outline-style: solid;
+    outline-color: var( --color-header);*/
+    box-sizing: 100%;
+    padding: 50px;
+    overflow-wrap: break-word;
+}
+
+h2 {
+    font-weight: bold;
+    font-size: 50px;
+}
+
+.description {
+    display: flex;
+}
+
+.instructions {
+    padding: 20px;
+    flex: 1;
+    border: 2px solid var(--color-focus);
+    border-radius: 1em;
+    text-align: left;
+    margin-left: 30px;
+}
+
+.ingredients {
+    padding: 20px;
+    width: 250px;
+    border: 2px solid var(--color-focus);
+    border-radius: 1em;
+    text-align: left;
+}
+
+#inst {
+    text-transform: none;
+}
+
+/* make buttons side-by-side */
+.buttons, form, input {
+    display: inline;
+}
+.instruction-list {
+    list-style-type: none;
+}
+
+div.gallery {
+    display: inline;
+    margin: 5px;
+    border: 2px solid var(--color-focus);
+    border-radius: 0.5em;
+    float: left;
+    width: 250px;
+    height: 215px;
+    justify-content: center;
+    align-items: center;
+    /* position: relative; */
+}
+
+div.gallery:hover {
+    border: 2px solid var(--color-header);
+    border-radius: 0.5em;
+}
+
+div.gallery img {
+    width: 100%;
+    height: auto;
+    height:150px; 
+    width:240px; 
+    margin-top: 5px;
+    border-radius: 8px;
+}
+  
+div.desc {
+    /* position: absolute; */
+    padding: 15px;
+    text-align: center;
+    bottom: 0px;
+}
+
+/*autocomplete css*/
+.autocomplete {
+    /*the container must be positioned relative:*/
+    position: relative;
+    display: inline-block;
+  }
+
+  .autocomplete-items {
+    position: absolute;
+    /* border: 1px solid #d4d4d4; */
+    border-bottom: none;
+    border-top: none;
+    z-index: 99;
+    /*position the autocomplete items to be the same width as the container:*/
+    top: 100%;
+    left: 2%;
+    right: 2%;
+    border-radius: 0.5em;
+  }
+  .autocomplete-items div {
+    padding: 10px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid #d4d4d4;
+    border-radius: 0.5em;
+  }
+  .autocomplete-items div:hover {
+    /*when hovering an item:*/
+    background-color: #e9e9e9;
+    border-radius: 0.5em;
+  }
+.search {
+    width: fit-content;
+}
+
