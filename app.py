@@ -296,7 +296,7 @@ def delete(rid):
         else:
             flash("Recipe {} deleted.".format(rid))
 
-        return redirect(url_for('index', page_title="RMD"))
+        return redirect(url_for('index'))
 
     else:
         # flash, cannot update recipe without being logged in
@@ -416,7 +416,7 @@ def login():
             passwd2 = request.form.get('password2')
             if passwd != passwd2:
                 flash('passwords do not match')
-                return redirect( url_for('index', page_title="RMD"))
+                return redirect( url_for('index'))
             hashed = bcrypt.hashpw(passwd.encode('utf-8'),
                                 bcrypt.gensalt())
             stored = hashed.decode('utf-8')
@@ -431,7 +431,7 @@ def login():
 
             except Exception as err:
                 flash('That username is taken: {}'.format(repr(err)))
-                return redirect(url_for('index', page_title="RMD"))
+                return redirect(url_for('index'))
 
             curs.execute('select last_insert_id()')
             row = curs.fetchone()
@@ -441,7 +441,7 @@ def login():
             session['uid'] = uid
             session['logged_in'] = True
             session['visits'] = 1
-            return redirect( url_for('index', page_title="RMD", user=username) )
+            return redirect( url_for('index', user=username) )
 
         # else login
         else:
@@ -464,10 +464,10 @@ def login():
                 session['uid'] = row['uid']
                 session['logged_in'] = True
                 session['visits'] = 1
-                return redirect( url_for('index', page_title="RMD", user=username) )
+                return redirect( url_for('index', user=username) )
             else:
                 flash('login incorrect. Try again or join')
-                return redirect( url_for('login', page_title="Login/Register"))
+                return redirect( url_for('login'))
 
 @app.route('/logout/')
 def logout():
@@ -480,7 +480,7 @@ def logout():
         return redirect(url_for('index'))
     else:
         flash('you are not logged in. Please login or join')
-        return redirect( url_for('index', page_title="RMD") )
+        return redirect( url_for('index') )
 
 @app.before_first_request
 def init_db():
