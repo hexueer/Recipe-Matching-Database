@@ -13,7 +13,7 @@ def getUID(conn, username):
 def insert_update_recipe(conn,title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid,amounts,rid): 
     '''inserts a recipe into the recipes table
        using given params. 
-       if the recipe already exists, we then only updates 
+       if the recipe already exists, we then only update 
        a row with new values (may be equivalent) for each 
        attribute in the Recipe table for a specific rid, 
        will ignore imagepath if none'''
@@ -23,11 +23,11 @@ def insert_update_recipe(conn,title,imagepath,cook_time,servings,instructions,ta
         # if we are inserting instead of updating
         if rid == None: 
             try: 
-                curs.execute('''insert into recipe(title,cook_time,
+                curs.execute('''insert into recipe(title,image_path,cook_time,
                                                 servings,instructions,tag,
                                                 post_date,last_updated_date,uid)
-                                values (%s, %s, %s, %s, %s, %s, %s, %s)''', 
-                                [title,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
+                                values (%s, %s, %s, %s, %s, %s, %s, %s, %s)''', 
+                                [title,imagepath,cook_time,servings,instructions,tags,post_date,last_updated_date,uid]) 
                 conn.commit()
 
                 try: 
